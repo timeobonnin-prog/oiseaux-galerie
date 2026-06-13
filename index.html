@@ -1,166 +1,1046 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Galerie secrète d’oiseaux</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: radial-gradient(circle at top, #ffd27b, #1b1b2f);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .card {
-      background: rgba(0,0,0,0.6);
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.7);
-      width: 90%;
-      max-width: 900px;
-      transition: transform 0.3s;
-    }
-    .card:hover {
-      transform: translateY(-5px);
-    }
-    #login, #gallery {
-      display: none;
-    }
-    #login.active, #gallery.active {
-      display: block;
-    }
-    input[type="password"], input[type="file"] {
-      width: 100%;
-      margin: 10px 0;
-    }
-    button {
-      padding: 8px 15px;
-      border-radius: 8px;
-      border: none;
-      background: #ffd27b;
-      color: #1b1b2f;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
-      margin-top: 15px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .img-card {
-      position: relative;
-      border-radius: 10px;
-      overflow: hidden;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-    .img-card:hover {
-      transform: scale(1.03);
-    }
-    .best {
-      border-color: gold;
-    }
-    .badge {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      background: rgba(0,0,0,0.7);
-      padding: 3px 6px;
-      border-radius: 10px;
-      font-size: 11px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galerie Protégée</title>
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --surface: #1a1a1a;
+            --surface2: #222222;
+            --gold: #c9a050;
+            --gold-light: #e0c878;
+            --gold-dark: #8b6914;
+            --gold-glow: rgba(201, 160, 80, 0.5);
+            --gold-glow-strong: rgba(224, 200, 120, 0.7);
+            --text: #d4d4d4;
+            --text-muted: #999;
+            --danger: #b33;
+            --border: #333;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            background-image:
+                radial-gradient(ellipse at 50% 0%, rgba(201, 160, 80, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(201, 160, 80, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 60%, rgba(201, 160, 80, 0.04) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* ============ ÉCRAN DE MOT DE PASSE ============ */
+        #password-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            background-image:
+                radial-gradient(ellipse at center, rgba(201, 160, 80, 0.08) 0%, transparent 70%),
+                radial-gradient(circle at 30% 40%, rgba(201, 160, 80, 0.05) 0%, transparent 50%);
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+        #password-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .password-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 50px 40px;
+            text-align: center;
+            box-shadow:
+                0 0 80px rgba(201, 160, 80, 0.1),
+                0 20px 60px rgba(0, 0, 0, 0.6);
+            max-width: 440px;
+            width: 90%;
+            position: relative;
+            animation: cardAppear 0.6s ease forwards;
+        }
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .password-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 22px;
+            background: linear-gradient(135deg,
+                    var(--gold) 0%,
+                    transparent 30%,
+                    transparent 70%,
+                    var(--gold-dark) 100%);
+            z-index: -1;
+            opacity: 0.4;
+            filter: blur(10px);
+        }
+        .password-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            animation: pulseGlow 2.5s ease-in-out infinite;
+            display: block;
+        }
+        @keyframes pulseGlow {
+            0%,
+            100% {
+                filter: drop-shadow(0 0 15px rgba(201, 160, 80, 0.6));
+            }
+            50% {
+                filter: drop-shadow(0 0 35px rgba(224, 200, 120, 0.9));
+            }
+        }
+        .password-card h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--gold-light);
+            margin-bottom: 8px;
+            letter-spacing: 0.04em;
+        }
+        .password-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .password-input-group {
+            display: flex;
+            gap: 10px;
+            position: relative;
+        }
+        .password-input-group input {
+            flex: 1;
+            padding: 14px 18px;
+            border-radius: 50px;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            outline: none;
+            transition: var(--transition);
+            text-align: center;
+            font-family: inherit;
+        }
+        .password-input-group input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 25px rgba(201, 160, 80, 0.2);
+        }
+        .password-input-group input::placeholder {
+            letter-spacing: 0.05em;
+            color: #555;
+        }
+        .btn {
+            padding: 14px 28px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.03em;
+            transition: var(--transition);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+            color: #1a1a1a;
+            box-shadow: 0 4px 20px rgba(201, 160, 80, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-gold:hover {
+            box-shadow: 0 6px 30px rgba(224, 200, 120, 0.55);
+            transform: translateY(-2px);
+        }
+        .btn-gold:active {
+            transform: scale(0.96);
+            box-shadow: 0 2px 10px rgba(201, 160, 80, 0.3);
+        }
+        .btn-gold::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-gold:hover::after {
+            opacity: 1;
+        }
+        .password-error {
+            color: #e88;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            min-height: 20px;
+            transition: var(--transition);
+        }
+
+        /* ============ CONTENEUR PRINCIPAL ============ */
+        #main-container {
+            display: none;
+            min-height: 100vh;
+            padding: 30px 20px 60px;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        #main-container.visible {
+            display: block;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============ HEADER ============ */
+        .header {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px 28px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+            opacity: 0.6;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-title .icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 12px rgba(201, 160, 80, 0.5));
+        }
+        .header-title h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            letter-spacing: 0.04em;
+        }
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .counter {
+            background: var(--bg);
+            padding: 10px 18px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            letter-spacing: 0.03em;
+        }
+        .counter strong {
+            color: var(--gold-light);
+            font-size: 1.1rem;
+        }
+        .btn-upload {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: #1a1a1a;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.03em;
+            border: none;
+            transition: var(--transition);
+            box-shadow: 0 4px 18px rgba(201, 160, 80, 0.3);
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-upload:hover {
+            box-shadow: 0 6px 28px rgba(224, 200, 120, 0.5);
+            transform: translateY(-2px);
+        }
+        .btn-upload:active {
+            transform: scale(0.95);
+        }
+        .btn-upload input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .btn-delete-selected {
+            padding: 12px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            background: transparent;
+            color: #c77;
+            border: 1.5px solid #5a2a2a;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.03em;
+            transition: var(--transition);
+            font-family: inherit;
+            display: none;
+        }
+        .btn-delete-selected.visible {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-delete-selected:hover {
+            background: #2a1010;
+            border-color: #a33;
+            color: #f88;
+            box-shadow: 0 0 20px rgba(180, 40, 40, 0.3);
+        }
+
+        /* ============ ZONE DE DÉPÔT ============ */
+        .drop-zone {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            padding: 50px 30px;
+            text-align: center;
+            border: 2px dashed #444;
+            border-radius: var(--radius);
+            background: var(--surface);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: var(--gold);
+            background: #1e1e1e;
+            box-shadow: 0 0 40px rgba(201, 160, 80, 0.15), inset 0 0 60px rgba(201, 160, 80, 0.03);
+        }
+        .drop-zone.drag-over {
+            border-style: solid;
+            box-shadow: 0 0 60px rgba(201, 160, 80, 0.3), inset 0 0 80px rgba(201, 160, 80, 0.06);
+        }
+        .drop-zone .drop-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            transition: var(--transition);
+        }
+        .drop-zone:hover .drop-icon {
+            transform: translateY(-6px);
+            filter: drop-shadow(0 8px 20px rgba(201, 160, 80, 0.5));
+        }
+        .drop-zone p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .drop-zone p strong {
+            color: var(--gold-light);
+        }
+
+        /* ============ GALERIE ============ */
+        .gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .gallery-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: #444;
+            transition: var(--transition);
+        }
+        .gallery-empty .empty-icon {
+            font-size: 5rem;
+            display: block;
+            margin-bottom: 16px;
+            opacity: 0.4;
+            filter: grayscale(0.5);
+        }
+        .gallery-empty p {
+            font-size: 1.1rem;
+            letter-spacing: 0.03em;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            padding: 0;
+            list-style: none;
+        }
+        .gallery-item {
+            position: relative;
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            background: var(--surface2);
+            border: 2px solid transparent;
+            transition: var(--transition);
+            aspect-ratio: 4/3;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            animation: itemFadeIn 0.4s ease forwards;
+            -webkit-user-drag: none;
+        }
+        @keyframes itemFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--gold-dark);
+            border-color: #555;
+        }
+        .gallery-item.selected {
+            border-color: var(--gold) !important;
+            box-shadow:
+                0 0 25px var(--gold-glow),
+                0 0 50px var(--gold-glow),
+                0 0 80px rgba(201, 160, 80, 0.25),
+                0 8px 30px rgba(0, 0, 0, 0.5) !important;
+            z-index: 2;
+            animation: selectedGlow 2s ease-in-out infinite;
+        }
+        @keyframes selectedGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 25px var(--gold-glow), 0 0 50px var(--gold-glow), 0 0 80px rgba(201, 160, 80, 0.25), 0 8px 30px rgba(0, 0, 0, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 40px var(--gold-glow-strong), 0 0 70px var(--gold-glow-strong), 0 0 100px rgba(224, 200, 120, 0.4), 0 8px 35px rgba(0, 0, 0, 0.6);
+            }
+        }
+        .gallery-item.selected::after {
+            content: '★';
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            font-size: 1.4rem;
+            color: var(--gold-light);
+            z-index: 5;
+            filter: drop-shadow(0 0 8px rgba(201, 160, 80, 0.9));
+            pointer-events: none;
+            animation: starPop 0.4s ease forwards;
+        }
+        @keyframes starPop {
+            from {
+                transform: scale(0) rotate(-30deg);
+            }
+            to {
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            pointer-events: none;
+            -webkit-user-drag: none;
+            user-drag: none;
+            -webkit-touch-callout: none;
+        }
+        .gallery-item .item-remove {
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            z-index: 5;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #555;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: var(--transition);
+            pointer-events: auto;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .gallery-item:hover .item-remove {
+            opacity: 1;
+        }
+        .gallery-item .item-remove:hover {
+            background: rgba(180, 30, 30, 0.8);
+            border-color: #b33;
+            color: #fff;
+        }
+
+        /* ============ WATERMARK INDICATOR ============ */
+        .watermark-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            padding: 8px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            color: var(--gold-light);
+            border: 1px solid #3a3020;
+            letter-spacing: 0.03em;
+        }
+        .watermark-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gold);
+            animation: pulseDot 1.5s ease-in-out infinite;
+        }
+        @keyframes pulseDot {
+            0%,
+            100% {
+                box-shadow: 0 0 6px var(--gold-glow);
+            }
+            50% {
+                box-shadow: 0 0 16px var(--gold-glow-strong);
+            }
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                padding: 16px 20px;
+                gap: 14px;
+            }
+            .header-title {
+                justify-content: center;
+            }
+            .header-info {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 12px;
+            }
+            .drop-zone {
+                padding: 30px 16px;
+            }
+            .password-card {
+                padding: 30px 20px;
+            }
+            .password-card h1 {
+                font-size: 1.3rem;
+            }
+            .btn-upload {
+                padding: 10px 18px;
+                font-size: 0.85rem;
+            }
+        }
+        @media (max-width: 400px) {
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            .header-title h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <div id="login" class="active">
-      <h2>Zone secrète oiseaux 🐦</h2>
-      <p>Entre ton code :</p>
-      <input type="password" id="codeInput" placeholder="Code secret">
-      <button id="btnLogin">Entrer</button>
-      <p id="error" style="color: #ff8080; display:none;">Code incorrect.</p>
+
+    <!-- ==================== ÉCRAN DE MOT DE PASSE ==================== -->
+    <div id="password-overlay">
+        <div class="password-card">
+            <span class="password-icon">🔒</span>
+            <h1>Galerie Protégée</h1>
+            <p>Entrez le code d'accès pour accéder<br>à votre galerie sécurisée.</p>
+            <div class="password-input-group">
+                <input
+                type="password"
+                id="password-input"
+                placeholder="••••••"
+                maxlength="30"
+                autocomplete="off"
+                >
+                <button class="btn btn-gold" id="btn-submit-password">Entrer</button>
+            </div>
+            <p class="password-error" id="password-error"></p>
+        </div>
     </div>
 
-    <div id="gallery">
-      <h2>Galerie d’oiseaux</h2>
-      <p>Ajoute tes photos (elles restent sur ton PC) :</p>
-      <input type="file" id="fileInput" accept="image/*" multiple>
-      <div class="grid" id="grid"></div>
+    <!-- ==================== CONTENEUR PRINCIPAL ==================== -->
+    <div id="main-container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-title">
+                <span class="icon">🖼️</span>
+                <h2>Ma Galerie</h2>
+            </div>
+            <div class="header-info">
+                <span class="watermark-badge">
+                    <span class="dot"></span> Filigrane actif
+                </span>
+                <span class="counter">
+                    <strong id="image-count">0</strong> image<span id="plural">s</span>
+                </span>
+                <button class="btn-upload" id="btn-upload-area">
+                    📁 Ajouter des photos
+                    <input type="file" id="file-input" accept="image/*" multiple>
+                </button>
+                <button class="btn-delete-selected" id="btn-delete-selected">
+                    🗑️ Retirer sélection
+                </button>
+            </div>
+        </div>
+
+        <!-- ZONE DE DÉPÔT -->
+        <div class="drop-zone" id="drop-zone">
+            <span class="drop-icon">📥</span>
+            <p><strong>Glissez-déposez</strong> vos photos ici<br>ou cliquez pour parcourir vos fichiers</p>
+            <p style="font-size:0.8rem;margin-top:6px;color:#555;">Les images originales ne seront <em>jamais</em> affichées ni stockées.</p>
+        </div>
+
+        <!-- GALERIE -->
+        <div class="gallery-container" id="gallery-container">
+            <div class="gallery-empty" id="gallery-empty">
+                <span class="empty-icon">📭</span>
+                <p>Aucune photo dans la galerie.<br>Ajoutez des images pour commencer.</p>
+            </div>
+            <div class="gallery-grid" id="gallery-grid"></div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const SECRET_CODE = "oiseaux123";
+    <script>
+        (function() {
+            // ==================== CONFIGURATION ====================
+            const PASSWORD = '1234'; // <-- Changez ce code d'accès ici
+            const WATERMARK_TEXT = '© PROTÉGÉ';
+            const WATERMARK_OPACITY = 0.38; // Opacité du filigrane (0 à 1)
+            const WATERMARK_FONT_SIZE_RATIO = 0.09; // Taille de police = 9% de la largeur de l'image
+            const WATERMARK_SPACING_RATIO = 0.18; // Espacement entre les lignes = 18% de la largeur
+            const MAX_IMAGE_DIM = 1400; // Redimensionnement max (pixels) pour le traitement
 
-    const loginDiv = document.getElementById("login");
-    const galleryDiv = document.getElementById("gallery");
-    const btnLogin = document.getElementById("btnLogin");
-    const codeInput = document.getElementById("codeInput");
-    const error = document.getElementById("error");
-    const fileInput = document.getElementById("fileInput");
-    const grid = document.getElementById("grid");
+            // ==================== ÉTAT ====================
+            let galleryImages = []; // { id, dataURL, selected }
+            let imageIdCounter = 0;
 
-    btnLogin.addEventListener("click", () => {
-      if (codeInput.value === SECRET_CODE) {
-        loginDiv.classList.remove("active");
-        galleryDiv.classList.add("active");
-      } else {
-        error.style.display = "block";
-      }
-    });
+            // ==================== ÉLÉMENTS DOM ====================
+            const passwordOverlay = document.getElementById('password-overlay');
+            const passwordInput = document.getElementById('password-input');
+            const btnSubmitPassword = document.getElementById('btn-submit-password');
+            const passwordError = document.getElementById('password-error');
+            const mainContainer = document.getElementById('main-container');
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const galleryGrid = document.getElementById('gallery-grid');
+            const galleryEmpty = document.getElementById('gallery-empty');
+            const imageCountEl = document.getElementById('image-count');
+            const pluralEl = document.getElementById('plural');
+            const btnDeleteSelected = document.getElementById('btn-delete-selected');
+            const btnUploadArea = document.getElementById('btn-upload-area');
 
-    fileInput.addEventListener("change", (event) => {
-      const files = Array.from(event.target.files);
+            // ==================== MOT DE PASSE ====================
+            function checkPassword() {
+                const entered = passwordInput.value.trim();
+                if (entered === PASSWORD) {
+                    passwordOverlay.classList.add('hidden');
+                    mainContainer.classList.add('visible');
+                    passwordError.textContent = '';
+                    // Focus sur la zone pour permettre le drag-drop immédiat
+                    setTimeout(() => dropZone.focus(), 300);
+                } else {
+                    passwordError.textContent = 'Code incorrect. Veuillez réessayer.';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    // Secouer la carte
+                    const card = passwordOverlay.querySelector('.password-card');
+                    card.style.animation = 'none';
+                    card.offsetHeight;
+                    card.style.animation = 'shake 0.5s ease';
+                }
+            }
 
-      files.forEach(file => {
-        const reader = new FileReader();
+            // Animation de secousse
+            const shakeKeyframes = `
+            @keyframes shake {
+              0%,100% { transform: translateX(0); }
+              10%,50%,90% { transform: translateX(-8px); }
+              30%,70% { transform: translateX(8px); }
+            }`;
+            const shakeStyle = document.createElement('style');
+            shakeStyle.textContent = shakeKeyframes;
+            document.head.appendChild(shakeStyle);
 
-        reader.onload = (e) => {
-          const img = new Image();
-          img.src = e.target.result;
-
-          img.onload = () => {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            ctx.drawImage(img, 0, 0);
-
-            ctx.font = "bold 80px Arial";
-            ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.rotate(-0.3);
-            ctx.fillText("TIMÉO ©", canvas.width / 2, canvas.height / 2);
-
-            const watermarked = canvas.toDataURL("image/jpeg");
-
-            const div = document.createElement("div");
-            div.className = "img-card";
-            div.innerHTML = `
-              <img src="${watermarked}">
-              <div class="badge">Cliquer = meilleur</div>
-            `;
-            div.addEventListener("click", () => {
-              div.classList.toggle("best");
+            btnSubmitPassword.addEventListener('click', checkPassword);
+            passwordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') checkPassword();
             });
 
-            grid.appendChild(div);
-          };
-        };
+            // Focus auto sur l'input
+            setTimeout(() => passwordInput.focus(), 400);
 
-        reader.readAsDataURL(file);
-      });
-    });
-  </script>
+            // ==================== TRAITEMENT DU FILIGRANE ====================
+            function applyWatermark(imageElement, callback) {
+                const img = imageElement;
+                let width = img.naturalWidth || img.width;
+                let height = img.naturalHeight || img.height;
+
+                // Redimensionner si nécessaire
+                if (width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+                    const ratio = Math.min(MAX_IMAGE_DIM / width, MAX_IMAGE_DIM / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+
+                // Dessiner l'image
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // --- Appliquer le filigrane ÉNORME ---
+                const fontSize = Math.max(width * WATERMARK_FONT_SIZE_RATIO, 28);
+                const spacing = Math.max(width * WATERMARK_SPACING_RATIO, fontSize * 2.2);
+                const angle = -32; // degrés (diagonale)
+
+                ctx.save();
+                ctx.globalAlpha = WATERMARK_OPACITY;
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+                ctx.lineWidth = fontSize * 0.08;
+                ctx.font = `bold ${fontSize}px "Segoe UI", "Helvetica Neue", Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Translater au centre puis pivoter
+                const cx = width / 2;
+                const cy = height / 2;
+                ctx.translate(cx, cy);
+                ctx.rotate((angle * Math.PI) / 180);
+
+                // Calculer l'étendue diagonale pour couvrir toute l'image
+                const diagonal = Math.sqrt(width * width + height * height);
+                const extended = diagonal * 1.4;
+
+                // Dessiner des lignes de texte répétées
+                const startY = -extended;
+                const endY = extended;
+                const startX = -extended;
+                const endX = extended;
+
+                // Lignes horizontales (dans le repère pivoté)
+                for (let y = startY; y < endY; y += spacing) {
+                    // Texte répété le long de la ligne
+                    const textWidth = ctx.measureText(WATERMARK_TEXT).width;
+                    const stepX = textWidth + fontSize * 1.6;
+                    for (let x = startX; x < endX; x += stepX) {
+                        ctx.strokeText(WATERMARK_TEXT, x, y);
+                        ctx.fillText(WATERMARK_TEXT, x, y);
+                    }
+                }
+
+                ctx.restore();
+
+                // Convertir en data URL (JPEG qualité 82%)
+                const watermarkedDataURL = canvas.toDataURL('image/jpeg', 0.82);
+
+                // Nettoyer
+                canvas.width = 0;
+                canvas.height = 0;
+
+                callback(watermarkedDataURL);
+            }
+
+            // ==================== AJOUT D'IMAGES ====================
+            function addImageFromFile(file) {
+                if (!file.type.startsWith('image/')) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const tempImg = new Image();
+                    tempImg.onload = function() {
+                        applyWatermark(tempImg, function(watermarkedDataURL) {
+                            const imageObj = {
+                                id: ++imageIdCounter,
+                                dataURL: watermarkedDataURL,
+                                selected: false,
+                            };
+                            galleryImages.push(imageObj);
+                            renderGallery();
+                            // Nettoyage
+                            tempImg.src = '';
+                        });
+                    };
+                    tempImg.src = e.target.result;
+                    // Le résultat du FileReader n'est pas stocké ailleurs
+                };
+                reader.readAsDataURL(file);
+                // Le fichier original n'est jamais ajouté au DOM
+            }
+
+            function handleFiles(files) {
+                if (!files || files.length === 0) return;
+                for (let i = 0; i < files.length; i++) {
+                    addImageFromFile(files[i]);
+                }
+                // Réinitialiser l'input file pour permettre de ré-ajouter les mêmes fichiers
+                fileInput.value = '';
+            }
+
+            // ==================== RENDU DE LA GALERIE ====================
+            function renderGallery() {
+                galleryGrid.innerHTML = '';
+                const count = galleryImages.length;
+
+                if (count === 0) {
+                    galleryEmpty.style.display = 'block';
+                    galleryGrid.style.display = 'none';
+                } else {
+                    galleryEmpty.style.display = 'none';
+                    galleryGrid.style.display = 'grid';
+                }
+
+                galleryImages.forEach(function(imgObj) {
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    if (imgObj.selected) {
+                        item.classList.add('selected');
+                    }
+                    item.setAttribute('data-id', imgObj.id);
+                    item.title = 'Cliquez pour sélectionner / désélectionner';
+
+                    const imageEl = document.createElement('img');
+                    imageEl.src = imgObj.dataURL;
+                    imageEl.alt = 'Image protégée par filigrane';
+                    imageEl.draggable = false;
+                    imageEl.setAttribute('draggable', 'false');
+                    // Empêcher le glisser-déposer de l'image
+                    imageEl.addEventListener('dragstart', function(e) {
+                        e.preventDefault();
+                        return false;
+                    });
+                    imageEl.addEventListener('contextmenu', function(e) {
+                        e.preventDefault();
+                    });
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'item-remove';
+                    removeBtn.innerHTML = '✕';
+                    removeBtn.title = 'Retirer cette image';
+                    removeBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        removeImage(imgObj.id);
+                    });
+
+                    item.appendChild(imageEl);
+                    item.appendChild(removeBtn);
+
+                    // Clic sur l'item = sélection/désélection
+                    item.addEventListener('click', function(e) {
+                        if (e.target === removeBtn) return;
+                        toggleSelection(imgObj.id);
+                    });
+
+                    galleryGrid.appendChild(item);
+                });
+
+                // Mise à jour du compteur
+                imageCountEl.textContent = count;
+                pluralEl.textContent = count === 1 ? '' : 's';
+
+                // Bouton de suppression des sélectionnées
+                const selectedCount = galleryImages.filter(function(im) { return im.selected; }).length;
+                if (selectedCount > 0) {
+                    btnDeleteSelected.classList.add('visible');
+                    btnDeleteSelected.textContent = '🗑️ Retirer (' + selectedCount + ')';
+                } else {
+                    btnDeleteSelected.classList.remove('visible');
+                }
+            }
+
+            function toggleSelection(id) {
+                const imgObj = galleryImages.find(function(im) { return im.id === id; });
+                if (imgObj) {
+                    imgObj.selected = !imgObj.selected;
+                    renderGallery();
+                }
+            }
+
+            function removeImage(id) {
+                galleryImages = galleryImages.filter(function(im) { return im.id !== id; });
+                renderGallery();
+            }
+
+            function removeSelectedImages() {
+                galleryImages = galleryImages.filter(function(im) { return !im.selected; });
+                renderGallery();
+            }
+
+            // ==================== ÉVÉNEMENTS ====================
+            // Upload via bouton
+            fileInput.addEventListener('change', function() {
+                handleFiles(fileInput.files);
+            });
+
+            // Upload via clic sur la zone de drop
+            dropZone.addEventListener('click', function(e) {
+                if (e.target === dropZone || e.target.closest('.drop-zone')) {
+                    fileInput.click();
+                }
+            });
+
+            // Drag & drop
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drag-over');
+            });
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+            });
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            });
+
+            // Drag & drop sur toute la page (hors drop zone) -> rediriger vers drop zone
+            document.addEventListener('dragover', function(e) {
+                if (!dropZone.contains(e.target) && e.target !== dropZone) {
+                    e.preventDefault();
+                    dropZone.classList.add('drag-over');
+                }
+            });
+            document.addEventListener('dragleave', function(e) {
+                if (e.relatedTarget === null || e.relatedTarget === document.documentElement) {
+                    dropZone.classList.remove('drag-over');
+                }
+            });
+            document.addEventListener('drop', function(e) {
+                if (!dropZone.contains(e.target) && e.target !== dropZone) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drag-over');
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                        handleFiles(files);
+                    }
+                }
+            });
+
+            // Bouton supprimer sélection
+            btnDeleteSelected.addEventListener('click', function() {
+                const selectedCount = galleryImages.filter(function(im) { return im.selected; }).length;
+                if (selectedCount > 0) {
+                    if (confirm('Voulez-vous retirer ' + selectedCount + ' image(s) sélectionnée(s) ?')) {
+                        removeSelectedImages();
+                    }
+                }
+            });
+
+            // Raccourci clavier : Échap pour désélectionner tout
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && mainContainer.classList.contains('visible')) {
+                    let anySelected = false;
+                    galleryImages.forEach(function(im) {
+                        if (im.selected) anySelected = true;
+                    });
+                    if (anySelected) {
+                        galleryImages.forEach(function(im) { im.selected = false; });
+                        renderGallery();
+                    }
+                }
+            });
+
+            // Empêcher le glisser-déposer des images de la galerie vers l'extérieur
+            galleryGrid.addEventListener('dragstart', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Empêcher le clic droit sur les images de la galerie
+            galleryGrid.addEventListener('contextmenu', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                }
+            });
+
+            // ==================== INITIALISATION ====================
+            renderGallery();
+
+            console.log('%c🔒 Galerie Protégée initialisée %c| %cLes images originales ne seront jamais affichées.',
+                'color:#c9a050;font-weight:bold;', '', 'color:#999;');
+            console.log('%c💧 Filigrane : %c"' + WATERMARK_TEXT + '" %c| Opacité : %c' + (WATERMARK_OPACITY * 100) +
+                '%',
+                'color:#e0c878;', 'color:#fff;font-weight:bold;', '', 'color:#ccc;');
+            console.log('%c📂 Ajoutez des photos pour commencer.', 'color:#888;');
+        })();
+    </script>
 </body>
 </html>
