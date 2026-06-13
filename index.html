@@ -42,17 +42,14 @@
         .header-info { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
         .counter { background:var(--bg); padding:10px 18px; border-radius:50px; font-size:0.9rem; color:var(--text-muted); border:1px solid var(--border); }
         .counter strong { color:var(--gold-light); }
-        .btn-upload, .btn-delete-selected, .admin-btn, .sort-btn {
+        .btn-upload, .admin-btn, .sort-btn {
             display:flex; align-items:center; gap:8px; padding:12px 24px; border-radius:50px;
             background:linear-gradient(135deg, var(--gold-dark), var(--gold)); color:#1a1a1a;
             font-weight:700; border:none; cursor:pointer; position:relative; overflow:hidden;
             box-shadow:0 4px 18px rgba(201,160,80,0.3); transition:var(--transition);
         }
         .btn-upload input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-        .btn-upload:hover, .btn-delete-selected:hover, .admin-btn:hover, .sort-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(224,200,120,0.5); }
-        .btn-delete-selected { background:transparent; color:#c77; border:1.5px solid #5a2a2a; display:none; }
-        .btn-delete-selected.visible { display:inline-flex; }
-        .btn-delete-selected:hover { background:#2a1010; border-color:#a33; color:#f88; }
+        .btn-upload:hover, .admin-btn:hover, .sort-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(224,200,120,0.5); }
         .admin-btn, .sort-btn { background:transparent; border:1.5px solid var(--gold); color:var(--gold-light); font-weight:600; padding:10px 18px; }
         .sort-btn.active { background:var(--gold); color:#1a1a1a; border-color:var(--gold); }
         .hidden-admin { display:none!important; }
@@ -74,20 +71,6 @@
             cursor:pointer; transition:var(--transition);
         }
         .gallery-item:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,0.6),0 0 0 1px var(--gold-dark); border-color:#555; }
-        .gallery-item.selected {
-            border-color:var(--gold)!important;
-            box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);
-            animation:selectedGlow 2s infinite;
-        }
-        @keyframes selectedGlow {
-            0%,100%{box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);}
-            50%{box-shadow:0 0 40px rgba(224,200,120,0.9),0 0 70px rgba(224,200,120,0.7),0 0 100px rgba(224,200,120,0.4);}
-        }
-        .gallery-item.selected::after {
-            content:'★'; position:absolute; top:12px; right:14px; font-size:1.4rem;
-            color:var(--gold-light); z-index:5;
-            filter:drop-shadow(0 0 8px rgba(201,160,80,0.9));
-        }
         .gallery-item img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
         .item-btn {
             position:absolute; z-index:5; width:32px; height:32px; border-radius:50%;
@@ -216,7 +199,6 @@
                 <button class="sort-btn" id="sort-oldest">📅 Plus ancien</button>
                 <button class="admin-btn" id="btn-open-admin">🔒 Admin</button>
                 <button class="btn-upload hidden-admin" id="btn-upload-area">📁 Ajouter<input type="file" id="file-input" accept="image/*" multiple></button>
-                <button class="btn-delete-selected hidden-admin" id="btn-delete-selected">🗑️ Retirer sélection</button>
             </div>
         </div>
         <div class="drop-zone hidden-admin" id="drop-zone">
@@ -250,7 +232,6 @@
             const galleryEmpty = document.getElementById('gallery-empty');
             const imageCountEl = document.getElementById('image-count');
             const pluralEl = document.getElementById('plural');
-            const btnDeleteSelected = document.getElementById('btn-delete-selected');
             const fileInput = document.getElementById('file-input');
             const dropZone = document.getElementById('drop-zone');
             const sortNewest = document.getElementById('sort-newest');
@@ -269,7 +250,7 @@
             const lightboxNext = document.getElementById('lightbox-next');
 
             let db = null;
-            let currentLightboxIndex = -1;  // index dans galleryImages (triée)
+            let currentLightboxIndex = -1;
 
             // ---------- INDEXEDDB ----------
             function openDB() {
@@ -411,7 +392,7 @@
                     tempImg.onload = () => {
                         generateWatermarkVersions(tempImg, async (lightURL, heavyURL) => {
                             const newId = await saveImageToDB(lightURL, heavyURL, Date.now());
-                            galleryImages.unshift({ id: newId, lightDataURL: lightURL, heavyDataURL: heavyURL, timestamp: Date.now(), selected: false });
+                            galleryImages.unshift({ id: newId, lightDataURL: lightURL, heavyDataURL: heavyURL, timestamp: Date.now() });
                             sortImages(); renderGallery();
                         });
                     };
@@ -437,7 +418,6 @@
                 sortOldest.classList.toggle('active', order === 'oldest');
                 sortImages();
                 renderGallery();
-                // Si lightbox ouverte, recalculer l'index
                 if (lightbox.classList.contains('active') && currentLightboxIndex >= 0) {
                     const currentImg = galleryImages[currentLightboxIndex];
                     if (currentImg) updateLightboxContent(currentImg, currentLightboxIndex);
@@ -461,7 +441,6 @@
             function updateLightboxContent(img, index) {
                 lightboxImg.src = img.lightDataURL;
                 lightboxCopyright.textContent = `${WATERMARK_TEXT} – Image ${index+1}/${galleryImages.length}`;
-                // Protection copie
                 lightboxImg.oncontextmenu = (e) => {
                     e.preventDefault();
                     lightboxImg.src = img.heavyDataURL;
@@ -471,9 +450,7 @@
                     e.preventDefault();
                     lightboxImg.src = img.heavyDataURL;
                 };
-                // Bouton téléchargement
                 lightboxDownload.onclick = () => downloadImage(img.heavyDataURL, `photo_${img.id}.jpg`);
-                // Afficher/masquer boutons de navigation
                 lightboxPrev.style.display = index > 0 ? 'flex' : 'none';
                 lightboxNext.style.display = index < galleryImages.length - 1 ? 'flex' : 'none';
             }
@@ -489,16 +466,11 @@
             lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
             lightboxNext.addEventListener('click', () => navigateLightbox(1));
 
-            // Navigation au clavier
             document.addEventListener('keydown', (e) => {
                 if (!lightbox.classList.contains('active')) return;
-                if (e.key === 'ArrowLeft') {
-                    e.preventDefault();
-                    navigateLightbox(-1);
-                } else if (e.key === 'ArrowRight') {
-                    e.preventDefault();
-                    navigateLightbox(1);
-                } else if (e.key === 'Escape') {
+                if (e.key === 'ArrowLeft') { e.preventDefault(); navigateLightbox(-1); }
+                else if (e.key === 'ArrowRight') { e.preventDefault(); navigateLightbox(1); }
+                else if (e.key === 'Escape') {
                     lightbox.classList.remove('active');
                     currentLightboxIndex = -1;
                     lightboxImg.src = '';
@@ -518,7 +490,7 @@
                 }
             });
 
-            // ---------- RENDU GALERIE ----------
+            // ---------- RENDU GALERIE (clic simple = agrandir) ----------
             let heavyTimeouts = {};
             function activateHeavy(id, imgEl) {
                 const img = galleryImages.find(i => i.id === id);
@@ -534,21 +506,10 @@
                 delete heavyTimeouts[id];
             }
 
-            function toggleSelection(id) {
-                const img = galleryImages.find(i => i.id === id);
-                if (img) { img.selected = !img.selected; renderGallery(); }
-            }
             async function removeImage(id) {
                 if (!isAdmin) return;
                 await deleteImageFromDB(id);
                 galleryImages = galleryImages.filter(i => i.id !== id);
-                renderGallery();
-            }
-            async function removeSelected() {
-                if (!isAdmin) return;
-                const idsToDelete = galleryImages.filter(i => i.selected).map(i => i.id);
-                for(let id of idsToDelete) await deleteImageFromDB(id);
-                galleryImages = galleryImages.filter(i => !i.selected);
                 renderGallery();
             }
 
@@ -560,11 +521,12 @@
                 galleryGrid.style.display = count ? 'grid' : 'none';
                 for(let img of galleryImages) {
                     const item = document.createElement('div');
-                    item.className = 'gallery-item' + (img.selected ? ' selected' : '');
+                    item.className = 'gallery-item';
                     item.dataset.id = img.id;
                     const imageElem = document.createElement('img');
                     imageElem.src = img.lightDataURL;
                     imageElem.draggable = false;
+                    // Protection copie
                     imageElem.addEventListener('contextmenu', (e) => {
                         e.preventDefault();
                         activateHeavy(img.id, imageElem);
@@ -576,42 +538,54 @@
                     imageElem.addEventListener('dragstart', () => activateHeavy(img.id, imageElem));
                     imageElem.addEventListener('dragend', () => restoreLight(img.id, imageElem));
 
+                    // Clic sur l'image = ouvrir en grand
+                    imageElem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openLightbox(img);
+                    });
+                    item.addEventListener('click', (e) => {
+                        // le clic sur l'item entier fait pareil
+                        openLightbox(img);
+                    });
+
+                    // Bouton zoom (doublon, mais gardé pour visibilité)
                     const zoomBtn = document.createElement('button');
                     zoomBtn.className = 'item-btn item-zoom';
                     zoomBtn.innerHTML = '🔍';
                     zoomBtn.title = 'Agrandir';
-                    zoomBtn.onclick = (e) => { e.stopPropagation(); openLightbox(img); };
+                    zoomBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openLightbox(img);
+                    });
 
+                    // Bouton téléchargement (version lourde)
                     const downloadBtn = document.createElement('button');
                     downloadBtn.className = 'item-btn item-download';
                     downloadBtn.innerHTML = '💾';
                     downloadBtn.title = 'Télécharger (protégé)';
-                    downloadBtn.onclick = (e) => {
+                    downloadBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         downloadImage(img.heavyDataURL, `photo_${img.id}.jpg`);
-                    };
+                    });
 
+                    // Bouton suppression (admin seulement)
                     const delBtn = document.createElement('button');
                     delBtn.className = 'item-btn item-remove' + (!isAdmin ? ' hidden-admin' : '');
                     delBtn.innerHTML = '✕';
                     delBtn.title = 'Supprimer';
-                    delBtn.onclick = (e) => { e.stopPropagation(); removeImage(img.id); };
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        removeImage(img.id);
+                    });
 
                     item.appendChild(imageElem);
                     item.appendChild(zoomBtn);
                     item.appendChild(downloadBtn);
                     item.appendChild(delBtn);
-                    item.addEventListener('click', (e) => {
-                        if(e.target === delBtn || e.target === zoomBtn || e.target === downloadBtn) return;
-                        toggleSelection(img.id);
-                    });
                     galleryGrid.appendChild(item);
                 }
                 imageCountEl.textContent = count;
                 pluralEl.textContent = count === 1 ? '' : 's';
-                const sel = galleryImages.filter(i => i.selected).length;
-                btnDeleteSelected.classList.toggle('visible', sel > 0 && isAdmin);
-                btnDeleteSelected.textContent = sel ? `🗑️ Retirer (${sel})` : '';
             }
 
             // ---------- ADMIN ----------
@@ -656,16 +630,6 @@
             });
             fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
 
-            // Échap pour désélectionner en galerie
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !lightbox.classList.contains('active')) {
-                    if (galleryImages.some(i => i.selected)) {
-                        galleryImages.forEach(i => i.selected = false);
-                        renderGallery();
-                    }
-                }
-            });
-
             // ---------- INIT ----------
             async function init() {
                 db = await openDB();
@@ -676,7 +640,6 @@
                 setSort('newest');
                 sortNewest.addEventListener('click', () => setSort('newest'));
                 sortOldest.addEventListener('click', () => setSort('oldest'));
-                btnDeleteSelected.addEventListener('click', () => removeSelected());
                 setAdminMode(false);
             }
             init();
