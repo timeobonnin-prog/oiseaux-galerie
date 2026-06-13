@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galerie Protégée – Tri par date</title>
+    <title>Galerie pro – Stockage illimité (IndexedDB)</title>
     <style>
         :root {
             --bg: #0d0d0d;
@@ -116,7 +116,6 @@
             50%{box-shadow:0 0 16px rgba(224,200,120,0.9);}
         }
 
-        /* Lightbox */
         .lightbox {
             position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,0.9);
             display:flex; align-items:center; justify-content:center;
@@ -135,7 +134,6 @@
         }
         .lightbox-copyright {
             margin-top:12px; color:var(--text-muted); font-size:0.85rem;
-            letter-spacing:0.03em;
         }
         .lightbox-close {
             position:absolute; top:-15px; right:-15px; width:40px; height:40px;
@@ -155,204 +153,169 @@
         .modal-box {
             background:var(--surface); border:1px solid var(--border);
             border-radius:16px; padding:30px; text-align:center;
-            max-width:400px; width:90%; box-shadow:0 0 40px rgba(201,160,80,0.2);
+            max-width:400px; width:90%;
         }
         .modal-box h3 { color:var(--gold-light); margin-bottom:12px; }
         .modal-box input { padding:10px; border-radius:20px; border:1px solid var(--border); background:var(--bg); color:var(--text); width:80%; text-align:center; margin-bottom:12px; }
-        .error { color:#e88; font-size:0.85rem; min-height:20px; margin-top:8px; }
-        .btn { padding:14px 28px; border-radius:50px; border:none; cursor:pointer; font-weight:600; font-size:0.95rem; width:100%; }
-        .btn-gold { background:linear-gradient(135deg, var(--gold-dark),var(--gold),var(--gold-light)); color:#1a1a1a; box-shadow:0 4px 20px rgba(201,160,80,0.35); }
-        .btn-gold:hover { transform:translateY(-2px); box-shadow:0 6px 30px rgba(224,200,120,0.55); }
-
+        .error { color:#e88; font-size:0.85rem; }
+        .btn { padding:14px 28px; border-radius:50px; border:none; cursor:pointer; font-weight:600; }
+        .btn-gold { background:linear-gradient(135deg, var(--gold-dark),var(--gold),var(--gold-light)); color:#1a1a1a; }
         @media (max-width:768px) {
-            .header { flex-direction:column; text-align:center; padding:16px 20px; }
+            .header { flex-direction:column; text-align:center; }
             .gallery-grid { grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
-            .drop-zone { padding:30px 16px; }
         }
     </style>
 </head>
 <body>
-
-    <!-- Lightbox -->
     <div class="lightbox" id="lightbox">
         <div class="lightbox-content">
-            <img id="lightbox-img" src="" alt="Image agrandie">
+            <img id="lightbox-img" src="" alt="Agrandissement">
             <div class="lightbox-copyright" id="lightbox-copyright"></div>
             <button class="lightbox-close" id="lightbox-close">✕</button>
         </div>
     </div>
 
-    <!-- Pop‑up admin -->
     <div class="modal-overlay" id="admin-modal">
         <div class="modal-box">
             <h3>🔐 Administration</h3>
-            <p style="color:var(--text-muted);margin-bottom:12px;">Connectez‑vous pour gérer la galerie</p>
-            <input type="password" id="admin-password" placeholder="Mot de passe" autocomplete="off">
+            <input type="password" id="admin-password" placeholder="Mot de passe">
             <button class="btn btn-gold" id="btn-admin-login">Valider</button>
             <p class="error" id="admin-error"></p>
         </div>
     </div>
 
-    <!-- Galerie -->
     <div id="main-container">
         <div class="header">
-            <div class="header-title">
-                <span class="icon">🖼️</span>
-                <h2>Galerie publique</h2>
-            </div>
+            <div class="header-title"><span class="icon">🖼️</span><h2>Galerie • IndexedDB</h2></div>
             <div class="header-info">
                 <span class="watermark-badge"><span class="dot"></span> Protection active</span>
                 <span class="counter"><strong id="image-count">0</strong> image<span id="plural">s</span></span>
-                <!-- Tri -->
                 <button class="sort-btn active" id="sort-newest">🕒 Plus récent</button>
                 <button class="sort-btn" id="sort-oldest">📅 Plus ancien</button>
                 <button class="admin-btn" id="btn-open-admin">🔒 Admin</button>
-                <button class="btn-upload hidden-admin" id="btn-upload-area">
-                    📁 Ajouter
-                    <input type="file" id="file-input" accept="image/*" multiple>
-                </button>
+                <button class="btn-upload hidden-admin" id="btn-upload-area">📁 Ajouter<input type="file" id="file-input" accept="image/*" multiple></button>
                 <button class="btn-delete-selected hidden-admin" id="btn-delete-selected">🗑️ Retirer sélection</button>
             </div>
         </div>
-
         <div class="drop-zone hidden-admin" id="drop-zone">
             <span class="drop-icon">📥</span>
             <p><strong>Glissez‑déposez</strong> vos photos ici<br>ou cliquez pour parcourir</p>
-            <p style="font-size:0.8rem;margin-top:6px;color:#555;">Seuls les administrateurs peuvent ajouter des images.</p>
         </div>
-
         <div class="gallery-container">
-            <div class="gallery-empty" id="gallery-empty">
-                <span class="empty-icon">📭</span>
-                <p>Aucune photo pour l'instant.</p>
-            </div>
+            <div class="gallery-empty" id="gallery-empty"><span class="empty-icon">📭</span><p>Aucune photo.</p></div>
             <div class="gallery-grid" id="gallery-grid"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.0/dist/nsfwjs.min.js"></script>
-
     <script>
-        (function() {
-            // ==================== CONFIGURATION ====================
-            const ADMIN_PASSWORD_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"; // hash de "password"
-            const WATERMARK_TEXT = "© Tous droits réservés 2024 - Votre Nom";
-            const LIGHT_OPACITY = 0.12;
-            const LIGHT_FONT_RATIO = 0.06;
-            const LIGHT_SPACING_RATIO = 0.25;
-            const HEAVY_OPACITY = 0.75;
-            const HEAVY_FONT_RATIO = 0.13;
-            const HEAVY_SPACING_RATIO = 0.16;
-            const MAX_DIM = 1400;
-            const STORAGE_KEY = 'protected_gallery_data'; // changement de clé car on stocke un objet {images, sortOrder}
-            const NSFW_THRESHOLD = 0.5;
+        (function(){
+            // ---------- CONSTANTES ----------
+            const ADMIN_PASSWORD_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"; // "password"
+            const WATERMARK_TEXT = "© Tous droits réservés 2024 – Votre Nom";
+            const LIGHT_OPACITY = 0.12, LIGHT_FONT_RATIO = 0.06, LIGHT_SPACING_RATIO = 0.25;
+            const HEAVY_OPACITY = 0.75, HEAVY_FONT_RATIO = 0.13, HEAVY_SPACING_RATIO = 0.16;
+            const MAX_DIM = 1200; // un peu plus petit pour gagner de la place
+            const DB_NAME = "PhotoGalleryDB", STORE_NAME = "images", DB_VERSION = 1;
 
-            // ==================== ÉTAT ====================
-            let galleryImages = [];
-            let imageIdCounter = Date.now();
-            let heavyModeTimeouts = {};
             let nsfwModel = null;
             let isAdmin = false;
-            let currentSort = 'newest'; // 'newest' ou 'oldest'
+            let currentSort = "newest"; // "newest" ou "oldest"
+            let galleryImages = [];      // tableau en mémoire { id, lightURL, heavyURL, timestamp, selected }
 
             // DOM
-            const mainContainer = document.getElementById('main-container');
-            const dropZone = document.getElementById('drop-zone');
-            const fileInput = document.getElementById('file-input');
             const galleryGrid = document.getElementById('gallery-grid');
             const galleryEmpty = document.getElementById('gallery-empty');
             const imageCountEl = document.getElementById('image-count');
             const pluralEl = document.getElementById('plural');
             const btnDeleteSelected = document.getElementById('btn-delete-selected');
-            const btnUploadArea = document.getElementById('btn-upload-area');
+            const fileInput = document.getElementById('file-input');
+            const dropZone = document.getElementById('drop-zone');
+            const sortNewest = document.getElementById('sort-newest');
+            const sortOldest = document.getElementById('sort-oldest');
             const btnOpenAdmin = document.getElementById('btn-open-admin');
             const adminModal = document.getElementById('admin-modal');
             const adminPassword = document.getElementById('admin-password');
             const btnAdminLogin = document.getElementById('btn-admin-login');
             const adminError = document.getElementById('admin-error');
-            const allAdminControls = document.querySelectorAll('.hidden-admin');
-            const sortNewestBtn = document.getElementById('sort-newest');
-            const sortOldestBtn = document.getElementById('sort-oldest');
-
-            // Lightbox
             const lightbox = document.getElementById('lightbox');
             const lightboxImg = document.getElementById('lightbox-img');
             const lightboxCopyright = document.getElementById('lightbox-copyright');
             const lightboxClose = document.getElementById('lightbox-close');
 
-            // ==================== PERSISTANCE ====================
-            function saveToStorage() {
-                const data = {
-                    images: galleryImages.map(img => ({
-                        id: img.id,
-                        lightDataURL: img.lightDataURL,
-                        heavyDataURL: img.heavyDataURL,
-                        selected: img.selected,
-                        timestamp: img.timestamp
-                    })),
-                    sortOrder: currentSort
-                };
-                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+            let db = null;
+
+            // ---------- INDEXEDDB ----------
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            const store = db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+                            store.createIndex("timestamp", "timestamp", { unique: false });
+                        }
+                    };
+                });
             }
 
-            function loadFromStorage() {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) return { images: [], sortOrder: 'newest' };
-                try {
-                    const parsed = JSON.parse(raw);
-                    return {
-                        images: (parsed.images || []).map(item => ({
+            async function loadAllImagesFromDB() {
+                if (!db) db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, "readonly");
+                    const store = tx.objectStore(STORE_NAME);
+                    const request = store.getAll();
+                    request.onsuccess = () => {
+                        const items = request.result.map(item => ({
                             id: item.id,
                             lightDataURL: item.lightDataURL,
                             heavyDataURL: item.heavyDataURL,
-                            selected: item.selected || false,
-                            timestamp: item.timestamp || Date.now() // fallback
-                        })),
-                        sortOrder: parsed.sortOrder || 'newest'
+                            timestamp: item.timestamp,
+                            selected: false
+                        }));
+                        resolve(items);
                     };
-                } catch(e) {
-                    return { images: [], sortOrder: 'newest' };
-                }
+                    request.onerror = () => reject(request.error);
+                });
             }
 
-            // ==================== HASH ====================
-            async function sha256(message) {
-                const msgBuffer = new TextEncoder().encode(message);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            async function saveImageToDB(lightURL, heavyURL, timestamp) {
+                if (!db) db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, "readwrite");
+                    const store = tx.objectStore(STORE_NAME);
+                    const record = { lightDataURL: lightURL, heavyDataURL: heavyURL, timestamp: timestamp };
+                    const request = store.add(record);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
             }
 
-            // ==================== NSFW ====================
-            async function loadNSFWModel() {
-                console.log('Chargement modèle NSFW...');
-                nsfwModel = await nsfwjs.load();
-                console.log('Modèle NSFW prêt.');
-            }
-            loadNSFWModel();
-
-            async function isSafeImage(file) {
-                if (!nsfwModel) return true;
-                try {
-                    const img = await createImageBitmap(file);
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width; canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    const predictions = await nsfwModel.classify(canvas);
-                    const forbidden = ['Porn', 'Hentai', 'Sexy'];
-                    for (let p of predictions)
-                        if (forbidden.includes(p.className) && p.probability > NSFW_THRESHOLD) return false;
-                    return true;
-                } catch (e) { return true; }
+            async function deleteImageFromDB(id) {
+                if (!db) db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, "readwrite");
+                    const store = tx.objectStore(STORE_NAME);
+                    const request = store.delete(id);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
             }
 
-            // ==================== FILIGRANE ====================
+            async function updateImageSelection(id, selected) {
+                // la sélection n'est pas persistante (juste en mémoire)
+                const img = galleryImages.find(i => i.id === id);
+                if (img) img.selected = selected;
+                renderGallery();
+            }
+
+            // ---------- FILIGRANE ----------
             function applyWatermark(ctx, w, h, opacity, fontRatio, spacingRatio) {
                 const fontSize = Math.max(w * fontRatio, 24);
                 const spacing = Math.max(w * spacingRatio, fontSize * 2);
-                const angle = -30;
                 ctx.save();
                 ctx.globalAlpha = opacity;
                 ctx.fillStyle = '#ffffff';
@@ -362,8 +325,8 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.translate(w/2, h/2);
-                ctx.rotate((angle * Math.PI) / 180);
-                const diag = Math.sqrt(w*w + h*h) * 1.6;
+                ctx.rotate(-30 * Math.PI/180);
+                const diag = Math.sqrt(w*w+h*h)*1.6;
                 const stepX = ctx.measureText(WATERMARK_TEXT).width + fontSize*1.6;
                 for (let y = -diag; y < diag; y += spacing)
                     for (let x = -diag; x < diag; x += stepX) {
@@ -373,43 +336,46 @@
                 ctx.restore();
             }
 
-            function generateWatermarkVersions(imageElement, callback) {
-                const img = imageElement;
-                let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-                if (w > MAX_DIM || h > MAX_DIM) {
-                    const r = Math.min(MAX_DIM / w, MAX_DIM / h);
-                    w = Math.round(w * r); h = Math.round(h * r);
-                }
-                const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                const heavyCanvas = document.createElement('canvas'); heavyCanvas.width = w; heavyCanvas.height = h;
+            function generateWatermarkVersions(imgElement, callback) {
+                let w = imgElement.naturalWidth, h = imgElement.naturalHeight;
+                const ratio = Math.min(MAX_DIM/w, MAX_DIM/h, 1);
+                w = Math.round(w*ratio); h = Math.round(h*ratio);
+                const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(imgElement, 0, 0, w, h);
+                const heavyCanvas = document.createElement('canvas'); heavyCanvas.width=w; heavyCanvas.height=h;
                 const heavyCtx = heavyCanvas.getContext('2d'); heavyCtx.drawImage(canvas, 0, 0);
                 applyWatermark(ctx, w, h, LIGHT_OPACITY, LIGHT_FONT_RATIO, LIGHT_SPACING_RATIO);
-                const lightURL = canvas.toDataURL('image/jpeg', 0.85);
                 applyWatermark(heavyCtx, w, h, HEAVY_OPACITY, HEAVY_FONT_RATIO, HEAVY_SPACING_RATIO);
-                const heavyURL = heavyCanvas.toDataURL('image/jpeg', 0.85);
-                callback(lightURL, heavyURL);
+                const light = canvas.toDataURL('image/jpeg', 0.82);
+                const heavy = heavyCanvas.toDataURL('image/jpeg', 0.82);
+                callback(light, heavy);
             }
 
+            // ---------- NSFW ----------
+            async function loadNSFW() { nsfwModel = await nsfwjs.load(); }
+            loadNSFW();
+            async function isSafe(file) {
+                if (!nsfwModel) return true;
+                const img = await createImageBitmap(file);
+                const canvas = document.createElement('canvas'); canvas.width=img.width; canvas.height=img.height;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0);
+                const pred = await nsfwModel.classify(canvas);
+                const forbidden = ['Porn','Hentai','Sexy'];
+                return !pred.some(p => forbidden.includes(p.className) && p.probability > 0.5);
+            }
+
+            // ---------- AJOUT D'IMAGE ----------
             async function addImageFromFile(file) {
                 if (!file.type.startsWith('image/')) return;
-                const safe = await isSafeImage(file);
-                if (!safe) { alert('⛔ Contenu inapproprié détecté. Image refusée.'); return; }
+                if (!await isSafe(file)) { alert("⛔ Image refusée (contenu inapproprié)"); return; }
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     const tempImg = new Image();
-                    tempImg.onload = function() {
-                        generateWatermarkVersions(tempImg, (lightURL, heavyURL) => {
-                            const newImage = {
-                                id: ++imageIdCounter,
-                                lightDataURL: lightURL,
-                                heavyDataURL: heavyURL,
-                                selected: false,
-                                timestamp: Date.now() // horodatage
-                            };
-                            galleryImages.push(newImage);
-                            renderGallery();
-                            saveToStorage();
+                    tempImg.onload = () => {
+                        generateWatermarkVersions(tempImg, async (lightURL, heavyURL) => {
+                            const newId = await saveImageToDB(lightURL, heavyURL, Date.now());
+                            galleryImages.unshift({ id: newId, lightDataURL: lightURL, heavyDataURL: heavyURL, timestamp: Date.now(), selected: false });
+                            sortImages(); renderGallery();
                         });
                     };
                     tempImg.src = e.target.result;
@@ -418,251 +384,144 @@
             }
 
             async function handleFiles(files) {
-                if (!files || files.length === 0) return;
-                for (let f of files) await addImageFromFile(f);
+                for(let f of files) await addImageFromFile(f);
                 fileInput.value = '';
             }
 
-            // ==================== TRI ====================
+            // ---------- TRI ----------
             function sortImages() {
-                if (currentSort === 'newest') {
-                    galleryImages.sort((a, b) => b.timestamp - a.timestamp);
-                } else {
-                    galleryImages.sort((a, b) => a.timestamp - b.timestamp);
-                }
+                if (currentSort === 'newest') galleryImages.sort((a,b) => b.timestamp - a.timestamp);
+                else galleryImages.sort((a,b) => a.timestamp - b.timestamp);
             }
-
-            function setSortOrder(order) {
+            function setSort(order) {
                 if (currentSort === order) return;
                 currentSort = order;
-                sortNewestBtn.classList.toggle('active', order === 'newest');
-                sortOldestBtn.classList.toggle('active', order === 'oldest');
+                sortNewest.classList.toggle('active', order === 'newest');
+                sortOldest.classList.toggle('active', order === 'oldest');
                 sortImages();
                 renderGallery();
-                saveToStorage();
             }
 
-            sortNewestBtn.addEventListener('click', () => setSortOrder('newest'));
-            sortOldestBtn.addEventListener('click', () => setSortOrder('oldest'));
+            // ---------- RENDU ----------
+            let heavyTimeouts = {};
+            function activateHeavy(id, imgEl) {
+                const img = galleryImages.find(i => i.id === id);
+                if (!img) return;
+                imgEl.src = img.heavyDataURL;
+                heavyTimeouts[id] = setTimeout(() => restoreLight(id, imgEl), 3000);
+            }
+            function restoreLight(id, imgEl) {
+                const img = galleryImages.find(i => i.id === id);
+                if (!img) return;
+                imgEl.src = img.lightDataURL;
+                clearTimeout(heavyTimeouts[id]);
+                delete heavyTimeouts[id];
+            }
 
-            // ==================== RENDU ====================
+            function openLightbox(imgObj) {
+                lightboxImg.src = imgObj.lightDataURL;
+                lightboxCopyright.textContent = `${WATERMARK_TEXT} – Agrandissement protégé`;
+                lightbox.classList.add('active');
+            }
+            lightboxClose.onclick = () => lightbox.classList.remove('active');
+            lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.classList.remove('active'); });
+
+            function toggleSelection(id) {
+                const img = galleryImages.find(i => i.id === id);
+                if (img) { img.selected = !img.selected; renderGallery(); }
+            }
+            async function removeImage(id) {
+                if (!isAdmin) return;
+                await deleteImageFromDB(id);
+                galleryImages = galleryImages.filter(i => i.id !== id);
+                renderGallery();
+            }
+            async function removeSelected() {
+                if (!isAdmin) return;
+                const idsToDelete = galleryImages.filter(i => i.selected).map(i => i.id);
+                for(let id of idsToDelete) await deleteImageFromDB(id);
+                galleryImages = galleryImages.filter(i => !i.selected);
+                renderGallery();
+            }
+
             function renderGallery() {
-                // Appliquer le tri avant d'afficher
                 sortImages();
-
                 galleryGrid.innerHTML = '';
                 const count = galleryImages.length;
                 galleryEmpty.style.display = count ? 'none' : 'block';
                 galleryGrid.style.display = count ? 'grid' : 'none';
-
-                galleryImages.forEach(imgObj => {
+                for(let img of galleryImages) {
                     const item = document.createElement('div');
-                    item.className = 'gallery-item' + (imgObj.selected ? ' selected' : '');
-                    item.dataset.id = imgObj.id;
-
-                    const img = document.createElement('img');
-                    img.src = imgObj.lightDataURL;
-                    img.draggable = false;
-                    img.addEventListener('contextmenu', function(e) {
-                        e.preventDefault();
-                        activateHeavyMode(imgObj.id, img);
-                        setTimeout(() => {
-                            const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY });
-                            img.dispatchEvent(ev);
-                        }, 10);
-                    });
-                    img.addEventListener('dragstart', () => activateHeavyMode(imgObj.id, img));
-                    img.addEventListener('dragend', () => restoreLightMode(imgObj.id, img));
-
-                    // Bouton zoom (loupe)
-                    const zoomBtn = document.createElement('button');
-                    zoomBtn.className = 'item-zoom';
-                    zoomBtn.innerHTML = '🔍';
-                    zoomBtn.title = 'Agrandir';
-                    zoomBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openLightbox(imgObj);
-                    });
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'item-remove' + (!isAdmin ? ' hidden-admin' : '');
-                    removeBtn.innerHTML = '✕';
-                    removeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeImage(imgObj.id); });
-
-                    item.appendChild(img);
-                    item.appendChild(zoomBtn);
-                    item.appendChild(removeBtn);
-                    item.addEventListener('click', (e) => {
-                        if (e.target === removeBtn || e.target === zoomBtn) return;
-                        toggleSelection(imgObj.id);
-                    });
+                    item.className = 'gallery-item' + (img.selected ? ' selected' : '');
+                    item.dataset.id = img.id;
+                    const imageElem = document.createElement('img');
+                    imageElem.src = img.lightDataURL;
+                    imageElem.draggable = false;
+                    imageElem.addEventListener('contextmenu', (e) => { e.preventDefault(); activateHeavy(img.id, imageElem); setTimeout(() => { const ev = new MouseEvent('contextmenu', {bubbles:true, clientX:e.clientX, clientY:e.clientY}); imageElem.dispatchEvent(ev); }, 10); });
+                    imageElem.addEventListener('dragstart', () => activateHeavy(img.id, imageElem));
+                    imageElem.addEventListener('dragend', () => restoreLight(img.id, imageElem));
+                    const zoomBtn = document.createElement('button'); zoomBtn.className='item-zoom'; zoomBtn.innerHTML='🔍';
+                    zoomBtn.onclick = (e) => { e.stopPropagation(); openLightbox(img); };
+                    const delBtn = document.createElement('button'); delBtn.className='item-remove' + (!isAdmin ? ' hidden-admin' : ''); delBtn.innerHTML='✕';
+                    delBtn.onclick = (e) => { e.stopPropagation(); removeImage(img.id); };
+                    item.appendChild(imageElem); item.appendChild(zoomBtn); item.appendChild(delBtn);
+                    item.addEventListener('click', (e) => { if(e.target === delBtn || e.target === zoomBtn) return; toggleSelection(img.id); });
                     galleryGrid.appendChild(item);
-                });
-
+                }
                 imageCountEl.textContent = count;
                 pluralEl.textContent = count === 1 ? '' : 's';
-
-                const sel = galleryImages.filter(im => im.selected).length;
+                const sel = galleryImages.filter(i => i.selected).length;
                 btnDeleteSelected.classList.toggle('visible', sel > 0 && isAdmin);
-                if (sel) btnDeleteSelected.textContent = `🗑️ Retirer (${sel})`;
+                btnDeleteSelected.textContent = sel ? `🗑️ Retirer (${sel})` : '';
             }
 
-            function activateHeavyMode(id, imgEl) {
-                const obj = galleryImages.find(im => im.id == id);
-                if (!obj) return;
-                imgEl.src = obj.heavyDataURL;
-                heavyModeTimeouts[id] = setTimeout(() => restoreLightMode(id, imgEl), 3000);
+            // ---------- ADMIN ----------
+            async function checkAdmin(password) {
+                const hash = await sha256(password);
+                return hash === ADMIN_PASSWORD_HASH;
             }
-            function restoreLightMode(id, imgEl) {
-                const obj = galleryImages.find(im => im.id == id);
-                if (!obj) return;
-                imgEl.src = obj.lightDataURL;
-                clearTimeout(heavyModeTimeouts[id]);
-                delete heavyModeTimeouts[id];
+            async function sha256(msg) {
+                const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+                return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
             }
-
-            function toggleSelection(id) {
-                const img = galleryImages.find(im => im.id === id);
-                if (img) { img.selected = !img.selected; renderGallery(); saveToStorage(); }
+            function setAdminMode(admin) {
+                isAdmin = admin;
+                document.querySelectorAll('.hidden-admin').forEach(el => el.classList.toggle('hidden-admin', !admin));
+                renderGallery();
             }
-            function removeImage(id) {
-                if (!isAdmin) return;
-                galleryImages = galleryImages.filter(im => im.id !== id);
-                renderGallery(); saveToStorage();
-            }
-            function removeSelectedImages() {
-                if (!isAdmin) return;
-                galleryImages = galleryImages.filter(im => !im.selected);
-                renderGallery(); saveToStorage();
-            }
-
-            // ==================== LIGHTBOX ====================
-            function openLightbox(imgObj) {
-                lightboxImg.src = imgObj.lightDataURL;
-                lightboxCopyright.textContent = WATERMARK_TEXT;
-                currentLightboxImageId = imgObj.id;
-                lightbox.classList.add('active');
-
-                // Protection de la lightbox : clic droit = version lourde
-                lightboxImg.oncontextmenu = function(e) {
-                    e.preventDefault();
-                    const heavyImg = new Image();
-                    heavyImg.src = imgObj.heavyDataURL;
-                    // Pour vraiment forcer la copie lourde, on remplace temporairement
-                    lightboxImg.src = heavyImg.src;
-                    setTimeout(() => {
-                        if (lightbox.classList.contains('active')) lightboxImg.src = imgObj.lightDataURL;
-                    }, 3000);
-                    return false;
-                };
-                lightboxImg.ondragstart = function(e) {
-                    e.preventDefault();
-                    lightboxImg.src = imgObj.heavyDataURL;
-                    setTimeout(() => {
-                        if (lightbox.classList.contains('active')) lightboxImg.src = imgObj.lightDataURL;
-                    }, 3000);
-                };
-            }
-
-            lightboxClose.addEventListener('click', () => {
-                lightbox.classList.remove('active');
-                lightboxImg.src = '';
-                currentLightboxImageId = null;
-            });
-            lightbox.addEventListener('click', function(e) {
-                if (e.target === lightbox) {
-                    lightbox.classList.remove('active');
-                    lightboxImg.src = '';
-                    currentLightboxImageId = null;
-                }
-            });
-
-            // ==================== ADMIN ====================
-            async function loginAdmin() {
-                const enteredPassword = adminPassword.value.trim();
-                if (!enteredPassword) return;
-                const enteredHash = await sha256(enteredPassword);
-                if (enteredHash === ADMIN_PASSWORD_HASH) {
-                    isAdmin = true;
+            btnOpenAdmin.onclick = () => adminModal.classList.add('active');
+            btnAdminLogin.onclick = async () => {
+                const pwd = adminPassword.value;
+                if (await checkAdmin(pwd)) {
+                    setAdminMode(true);
                     adminModal.classList.remove('active');
                     adminError.textContent = '';
-                    adminPassword.value = '';
-                    allAdminControls.forEach(el => el.classList.remove('hidden-admin'));
-                    btnOpenAdmin.textContent = '✅ Admin (connecté)';
-                    renderGallery(); // réaffiche les boutons de suppression
-                } else {
-                    adminError.textContent = 'Mot de passe incorrect.';
-                    adminPassword.value = '';
-                    adminPassword.focus();
-                }
-            }
+                } else adminError.textContent = 'Mot de passe incorrect';
+            };
+            // fermeture modal au clic extérieur
+            adminModal.onclick = (e) => { if(e.target === adminModal) adminModal.classList.remove('active'); };
 
-            btnOpenAdmin.addEventListener('click', () => {
-                if (isAdmin) return;
-                adminModal.classList.add('active');
-                adminPassword.focus();
-            });
-            btnAdminLogin.addEventListener('click', loginAdmin);
-            adminPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); });
-            adminModal.addEventListener('click', function(e) {
-                if (e.target === adminModal) adminModal.classList.remove('active');
-            });
-
-            // ==================== UPLOAD ====================
-            function attemptUpload(files) {
-                if (!isAdmin) {
-                    alert("Seul l'administrateur peut ajouter des images.");
-                    return;
-                }
-                handleFiles(files);
-            }
-
-            fileInput.addEventListener('change', () => attemptUpload(fileInput.files));
-            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+            // ---------- DRAG & UPLOAD ----------
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
             dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-            dropZone.addEventListener('drop', e => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-over');
-                attemptUpload(e.dataTransfer.files);
-            });
+            dropZone.addEventListener('drop', async (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')); if(files.length) await handleFiles(files); });
+            fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
 
-            document.addEventListener('dragover', e => {
-                if (!dropZone.contains(e.target)) { e.preventDefault(); dropZone.classList.add('drag-over'); }
-            });
-            document.addEventListener('dragleave', e => {
-                if (!e.relatedTarget || e.relatedTarget === document.documentElement) dropZone.classList.remove('drag-over');
-            });
-            document.addEventListener('drop', e => {
-                if (!dropZone.contains(e.target)) {
-                    e.preventDefault();
-                    dropZone.classList.remove('drag-over');
-                    if (e.dataTransfer.files.length) attemptUpload(e.dataTransfer.files);
-                }
-            });
-
-            dropZone.addEventListener('click', () => { if (isAdmin) fileInput.click(); });
-
-            btnDeleteSelected.addEventListener('click', () => {
-                const sel = galleryImages.filter(im => im.selected).length;
-                if (sel && confirm(`Retirer ${sel} image(s) ?`)) removeSelectedImages();
-            });
-
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape') {
-                    if (galleryImages.some(im => im.selected)) {
-                        galleryImages.forEach(im => im.selected = false);
-                        renderGallery(); saveToStorage();
-                    }
-                }
-            });
-
-            // ==================== INITIALISATION ====================
-            const storedData = loadFromStorage();
-            galleryImages = storedData.images;
-            currentSort = storedData.sortOrder || 'newest';
-            sortNewestBtn.classList.toggle('active', currentSort === 'newest');
-            sortOldestBtn.classList.toggle('active', currentSort === 'oldest');
-            renderGallery();
+            // ---------- INIT ----------
+            async function init() {
+                db = await openDB();
+                const imagesFromDB = await loadAllImagesFromDB();
+                galleryImages = imagesFromDB;
+                sortImages();
+                renderGallery();
+                setSort('newest');
+                sortNewest.addEventListener('click', () => setSort('newest'));
+                sortOldest.addEventListener('click', () => setSort('oldest'));
+                btnDeleteSelected.addEventListener('click', () => removeSelected());
+                setAdminMode(false);
+            }
+            init();
         })();
     </script>
 </body>
