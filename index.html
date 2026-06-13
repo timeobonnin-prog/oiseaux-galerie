@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galerie Protégée – Filigrane à la demande</title>
+    <title>Galerie Protégée – Anti‑bot & filtre NSFW</title>
     <style>
         :root {
             --bg: #0d0d0d;
@@ -12,14 +12,13 @@
             --gold: #c9a050;
             --gold-light: #e0c878;
             --gold-dark: #8b6914;
-            --gold-glow: rgba(201, 160, 80, 0.5);
             --text: #d4d4d4;
             --text-muted: #999;
             --border: #333;
             --radius: 12px;
             --transition: 0.3s;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: var(--bg);
@@ -28,151 +27,336 @@
             user-select: none;
             -webkit-user-select: none;
             background-image:
-                radial-gradient(ellipse at 50% 0%, rgba(201, 160, 80, 0.06) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(201, 160, 80, 0.03) 0%, transparent 50%);
+                radial-gradient(ellipse at 50% 0%, rgba(201,160,80,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(201,160,80,0.03) 0%, transparent 50%);
             background-attachment: fixed;
         }
-        #password-overlay {
-            position: fixed; inset: 0; z-index: 10000;
-            display: flex; align-items: center; justify-content: center;
-            background: #0a0a0a;
-            transition: opacity 0.6s, visibility 0.6s;
+        #main-container {
+            min-height: 100vh;
+            padding: 30px 20px 60px;
         }
-        #password-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .password-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 50px 40px;
-            text-align: center;
-            box-shadow: 0 0 80px rgba(201, 160, 80, 0.1), 0 20px 60px rgba(0,0,0,0.6);
-            max-width: 440px; width: 90%;
-            animation: cardAppear 0.6s ease;
-        }
-        @keyframes cardAppear { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        .password-card::before {
-            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
-            border-radius: 22px;
-            background: linear-gradient(135deg, var(--gold) 0%, transparent 40%, transparent 60%, var(--gold-dark) 100%);
-            z-index: -1; opacity: 0.3; filter: blur(10px);
-        }
-        .password-icon { font-size: 56px; margin-bottom: 16px; animation: pulseGlow 2.5s infinite; display: block; }
-        @keyframes pulseGlow { 0%,100%{filter:drop-shadow(0 0 15px rgba(201,160,80,0.6));} 50%{filter:drop-shadow(0 0 35px rgba(224,200,120,0.9));} }
-        .password-card h1 { font-size: 1.6rem; font-weight: 600; color: var(--gold-light); }
-        .password-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 28px; }
-        .password-input-group { display: flex; gap: 10px; }
-        .password-input-group input {
-            flex:1; padding:14px 18px; border-radius:50px; border:1.5px solid var(--border);
-            background:var(--bg); color:var(--text); font-size:1rem; letter-spacing:0.15em;
-            outline:none; text-align:center; transition:var(--transition);
-        }
-        .password-input-group input:focus { border-color:var(--gold); box-shadow:0 0 25px rgba(201,160,80,0.2); }
-        .btn { padding:14px 28px; border-radius:50px; border:none; cursor:pointer; font-weight:600; font-size:0.95rem; transition:var(--transition); }
-        .btn-gold { background:linear-gradient(135deg, var(--gold-dark),var(--gold),var(--gold-light)); color:#1a1a1a; box-shadow:0 4px 20px rgba(201,160,80,0.35); }
-        .btn-gold:hover { box-shadow:0 6px 30px rgba(224,200,120,0.55); transform:translateY(-2px); }
-        .password-error { color:#e88; font-size:0.85rem; margin-top:12px; min-height:20px; }
-
-        #main-container { display:none; min-height:100vh; padding:30px 20px 60px; animation:fadeInUp 0.5s ease; }
-        #main-container.visible { display:block; }
-        @keyframes fadeInUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
-
         .header {
-            max-width:1200px; margin:0 auto 30px; display:flex; align-items:center;
-            justify-content:space-between; flex-wrap:wrap; gap:20px; padding:20px 28px;
-            background:var(--surface); border-radius:var(--radius); border:1px solid var(--border);
-            box-shadow:0 8px 32px rgba(0,0,0,0.4);
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px 28px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
-        .header-title { display:flex; align-items:center; gap:12px; }
-        .header-title .icon { font-size:2rem; filter:drop-shadow(0 0 12px rgba(201,160,80,0.5)); }
-        .header-title h2 { font-size:1.5rem; font-weight:700; color:var(--gold-light); }
-        .header-info { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-        .counter { background:var(--bg); padding:10px 18px; border-radius:50px; font-size:0.9rem; color:var(--text-muted); border:1px solid var(--border); }
-        .counter strong { color:var(--gold-light); font-size:1.1rem; }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-title .icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 12px rgba(201,160,80,0.5));
+        }
+        .header-title h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gold-light);
+        }
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .counter {
+            background: var(--bg);
+            padding: 10px 18px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+        .counter strong {
+            color: var(--gold-light);
+        }
         .btn-upload {
-            display:flex; align-items:center; gap:8px; padding:12px 24px; border-radius:50px;
-            background:linear-gradient(135deg, var(--gold-dark),var(--gold)); color:#1a1a1a;
-            font-weight:700; border:none; cursor:pointer; box-shadow:0 4px 18px rgba(201,160,80,0.3);
-            position:relative; overflow:hidden; transition:var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: #1a1a1a;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 18px rgba(201,160,80,0.3);
+            transition: var(--transition);
         }
-        .btn-upload input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-        .btn-upload:hover { box-shadow:0 6px 28px rgba(224,200,120,0.5); transform:translateY(-2px); }
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 28px rgba(224,200,120,0.5);
+        }
+        .btn-upload input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
         .btn-delete-selected {
-            padding:12px 20px; border-radius:50px; background:transparent; color:#c77;
-            border:1.5px solid #5a2a2a; font-weight:600; cursor:pointer; display:none; transition:var(--transition);
+            padding: 12px 20px;
+            border-radius: 50px;
+            background: transparent;
+            color: #c77;
+            border: 1.5px solid #5a2a2a;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+            transition: var(--transition);
         }
-        .btn-delete-selected.visible { display:inline-flex; align-items:center; gap:6px; }
-        .btn-delete-selected:hover { background:#2a1010; border-color:#a33; color:#f88; box-shadow:0 0 20px rgba(180,40,40,0.3); }
-
+        .btn-delete-selected.visible {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-delete-selected:hover {
+            background: #2a1010;
+            border-color: #a33;
+            color: #f88;
+            box-shadow: 0 0 20px rgba(180,40,40,0.3);
+        }
         .drop-zone {
-            max-width:1200px; margin:0 auto 30px; padding:50px 30px; text-align:center;
-            border:2px dashed #444; border-radius:var(--radius); background:var(--surface);
-            transition:var(--transition); cursor:pointer;
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            padding: 50px 30px;
+            text-align: center;
+            border: 2px dashed #444;
+            border-radius: var(--radius);
+            background: var(--surface);
+            cursor: pointer;
+            transition: var(--transition);
         }
-        .drop-zone:hover, .drop-zone.drag-over { border-color:var(--gold); background:#1e1e1e; box-shadow:0 0 40px rgba(201,160,80,0.15); }
-        .drop-zone.drag-over { border-style:solid; box-shadow:0 0 60px rgba(201,160,80,0.3); }
-        .drop-zone .drop-icon { font-size:3rem; margin-bottom:12px; transition:var(--transition); }
-        .drop-zone:hover .drop-icon { transform:translateY(-6px); filter:drop-shadow(0 8px 20px rgba(201,160,80,0.5)); }
-        .drop-zone p strong { color:var(--gold-light); }
-
-        .gallery-container { max-width:1200px; margin:0 auto; }
-        .gallery-empty { text-align:center; padding:80px 20px; color:#444; }
-        .gallery-empty .empty-icon { font-size:5rem; display:block; margin-bottom:16px; opacity:0.4; }
-        .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:20px; padding:0; list-style:none; }
+        .drop-zone.drag-over {
+            border-color: var(--gold);
+            background: #1e1e1e;
+            box-shadow: 0 0 40px rgba(201,160,80,0.15);
+        }
+        .drop-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        .gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .gallery-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: #444;
+        }
+        .gallery-empty .empty-icon {
+            font-size: 5rem;
+            display: block;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            padding: 0;
+            list-style: none;
+        }
         .gallery-item {
-            position:relative; border-radius:var(--radius); overflow:hidden;
-            background:var(--surface2); border:2px solid transparent; transition:var(--transition);
-            aspect-ratio:4/3; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer;
+            position: relative;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--surface2);
+            border: 2px solid transparent;
+            aspect-ratio: 4/3;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: var(--transition);
         }
-        .gallery-item:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,0.6),0 0 0 1px var(--gold-dark); border-color:#555; }
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--gold-dark);
+            border-color: #555;
+        }
         .gallery-item.selected {
-            border-color:var(--gold)!important;
-            box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);
-            animation:selectedGlow 2s infinite;
+            border-color: var(--gold) !important;
+            box-shadow: 0 0 25px var(--gold-glow), 0 0 50px var(--gold-glow), 0 0 80px rgba(201,160,80,0.25);
+            animation: selectedGlow 2s infinite;
         }
         @keyframes selectedGlow {
-            0%,100%{box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);}
-            50%{box-shadow:0 0 40px rgba(224,200,120,0.9),0 0 70px rgba(224,200,120,0.7),0 0 100px rgba(224,200,120,0.4);}
+            0%, 100% { box-shadow: 0 0 25px var(--gold-glow), 0 0 50px var(--gold-glow), 0 0 80px rgba(201,160,80,0.25); }
+            50% { box-shadow: 0 0 40px rgba(224,200,120,0.9), 0 0 70px rgba(224,200,120,0.7), 0 0 100px rgba(224,200,120,0.4); }
         }
         .gallery-item.selected::after {
-            content:'★'; position:absolute; top:12px; right:14px; font-size:1.4rem;
-            color:var(--gold-light); z-index:5; filter:drop-shadow(0 0 8px rgba(201,160,80,0.9));
+            content: '★';
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            font-size: 1.4rem;
+            color: var(--gold-light);
+            z-index: 5;
+            filter: drop-shadow(0 0 8px rgba(201,160,80,0.9));
         }
-        .gallery-item img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+            user-drag: none;
+            -webkit-user-drag: none;
+        }
         .item-remove {
-            position:absolute; top:10px; left:12px; z-index:5; width:32px; height:32px;
-            border-radius:50%; background:rgba(0,0,0,0.7); border:1px solid #555; color:#ccc;
-            cursor:pointer; display:flex; align-items:center; justify-content:center;
-            opacity:0; transition:var(--transition);
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #555;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            cursor: pointer;
+            transition: var(--transition);
         }
-        .gallery-item:hover .item-remove { opacity:1; }
-        .item-remove:hover { background:rgba(180,30,30,0.8); border-color:#b33; color:#fff; }
+        .gallery-item:hover .item-remove {
+            opacity: 1;
+        }
+        .item-remove:hover {
+            background: rgba(180,30,30,0.8);
+            border-color: #b33;
+            color: #fff;
+        }
+        .watermark-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            padding: 8px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            color: var(--gold-light);
+            border: 1px solid #3a3020;
+        }
+        .watermark-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gold);
+            animation: pulseDot 1.5s infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { box-shadow: 0 0 6px var(--gold-glow); }
+            50% { box-shadow: 0 0 16px rgba(224,200,120,0.9); }
+        }
 
-        .watermark-badge { display:inline-flex; align-items:center; gap:6px; background:var(--bg); padding:8px 14px; border-radius:50px; font-size:0.8rem; color:var(--gold-light); border:1px solid #3a3020; }
-        .watermark-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--gold); animation:pulseDot 1.5s infinite; }
-        @keyframes pulseDot { 0%,100%{box-shadow:0 0 6px var(--gold-glow);} 50%{box-shadow:0 0 16px rgba(224,200,120,0.9);} }
-        @media (max-width:768px) {
-            .header { flex-direction:column; text-align:center; padding:16px 20px; gap:14px; }
-            .gallery-grid { grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
-            .drop-zone { padding:30px 16px; }
+        /* Pop-up anti-bot */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 40px rgba(201,160,80,0.2);
+        }
+        .modal-box h3 {
+            color: var(--gold-light);
+            margin-bottom: 12px;
+        }
+        .modal-box input {
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            width: 80%;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .error {
+            color: #e88;
+            font-size: 0.85rem;
+            min-height: 20px;
+            margin-top: 8px;
+        }
+        .btn {
+            padding: 14px 28px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            transition: var(--transition);
+        }
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+            color: #1a1a1a;
+            box-shadow: 0 4px 20px rgba(201,160,80,0.35);
+        }
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(224,200,120,0.55);
+        }
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                padding: 16px 20px;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 12px;
+            }
+            .drop-zone {
+                padding: 30px 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Password screen -->
-    <div id="password-overlay">
-        <div class="password-card">
-            <span class="password-icon">🔒</span>
-            <h1>Galerie Protégée</h1>
-            <p>Entrez le code d'accès.<br>Les copies seront automatiquement dégradées.</p>
-            <div class="password-input-group">
-                <input type="password" id="password-input" placeholder="••••••" maxlength="30" autocomplete="off">
-                <button class="btn btn-gold" id="btn-submit-password">Entrer</button>
-            </div>
-            <p class="password-error" id="password-error"></p>
+
+    <!-- Anti-bot popup -->
+    <div class="modal-overlay" id="bot-modal">
+        <div class="modal-box">
+            <h3>🛡️ Vérification humaine</h3>
+            <p id="bot-question">Combien font <span id="num1"></span> + <span id="num2"></span> ?</p>
+            <input type="text" id="bot-answer" placeholder="Votre réponse" inputmode="numeric">
+            <button class="btn btn-gold" id="btn-bot-verify">Vérifier</button>
+            <p class="error" id="bot-error"></p>
         </div>
     </div>
 
-    <!-- Main gallery -->
+    <!-- Galerie principale -->
     <div id="main-container">
         <div class="header">
             <div class="header-title">
@@ -182,7 +366,7 @@
             <div class="header-info">
                 <span class="watermark-badge"><span class="dot"></span> Protection active</span>
                 <span class="counter"><strong id="image-count">0</strong> image<span id="plural">s</span></span>
-                <button class="btn-upload">
+                <button class="btn-upload" id="btn-upload-area">
                     📁 Ajouter
                     <input type="file" id="file-input" accept="image/*" multiple>
                 </button>
@@ -201,41 +385,44 @@
         <div class="gallery-container">
             <div class="gallery-empty" id="gallery-empty">
                 <span class="empty-icon">📭</span>
-                <p>Aucune photo pour l'instant.</p>
+                <p>Aucune photo pour l'instant.<br>Ajoutez des images pour commencer.</p>
             </div>
             <div class="gallery-grid" id="gallery-grid"></div>
         </div>
     </div>
 
+    <!-- Librairies NSFW -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.0/dist/nsfwjs.min.js">
+    </script>
+
     <script>
         (function() {
             // ==================== CONFIGURATION ====================
-            const PASSWORD = '1234';
             const WATERMARK_TEXT = '© PROTÉGÉ';
-
-            // Filigrane LÉGER (affichage normal)
+            // Filigrane discret (affichage normal)
             const LIGHT_OPACITY = 0.12;
             const LIGHT_FONT_RATIO = 0.06;
             const LIGHT_SPACING_RATIO = 0.25;
-
-            // Filigrane ÉNORME (pour les copies)
+            // Filigrane énorme (copie/drag)
             const HEAVY_OPACITY = 0.75;
             const HEAVY_FONT_RATIO = 0.13;
             const HEAVY_SPACING_RATIO = 0.16;
 
             const MAX_DIM = 1400;
             const STORAGE_KEY = 'protected_gallery_images';
+            const NSFW_THRESHOLD = 0.5; // à partir de quelle probabilité on bloque
 
             // ==================== ÉTAT ====================
-            let galleryImages = [];           // { id, lightDataURL, heavyDataURL, selected }
-            let imageIdCounter = Date.now(); // pour éviter collisions entre sessions
-            let heavyModeTimeouts = {};      // id -> timeout pour restaurer l'image légère
+            let galleryImages = [];
+            let imageIdCounter = Date.now();
+            let heavyModeTimeouts = {};
+            let nsfwModel = null;
+            let antiBotPassed = false;       // défi validé pour cette session
+            let pendingFiles = null;         // fichiers en attente après vérification bot
 
             // ==================== DOM ====================
-            const passwordOverlay = document.getElementById('password-overlay');
-            const passwordInput = document.getElementById('password-input');
-            const btnSubmitPassword = document.getElementById('btn-submit-password');
-            const passwordError = document.getElementById('password-error');
             const mainContainer = document.getElementById('main-container');
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
@@ -245,7 +432,14 @@
             const pluralEl = document.getElementById('plural');
             const btnDeleteSelected = document.getElementById('btn-delete-selected');
 
-            // ==================== PERSISTANCE (localStorage) ====================
+            const botModal = document.getElementById('bot-modal');
+            const num1Span = document.getElementById('num1');
+            const num2Span = document.getElementById('num2');
+            const botAnswer = document.getElementById('bot-answer');
+            const btnBotVerify = document.getElementById('btn-bot-verify');
+            const botError = document.getElementById('bot-error');
+
+            // ==================== PERSISTANCE ====================
             function saveToStorage() {
                 const data = galleryImages.map(img => ({
                     id: img.id,
@@ -255,83 +449,68 @@
                 }));
                 try {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                } catch (e) {
-                    console.warn('Impossible de sauvegarder (stockage plein ?)', e);
-                }
+                } catch (e) {}
             }
 
             function loadFromStorage() {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (!raw) return [];
                 try {
-                    const data = JSON.parse(raw);
-                    return data.map(item => ({
-                        id: item.id,
-                        lightDataURL: item.lightDataURL,
-                        heavyDataURL: item.heavyDataURL,
-                        selected: item.selected
-                    }));
+                    return JSON.parse(raw);
                 } catch (e) {
                     return [];
                 }
             }
 
-            // ==================== GÉNÉRATION DES DEUX VERSIONS ====================
-            function generateWatermarkVersions(imageElement, callback) {
-                const img = imageElement;
-                let w = img.naturalWidth || img.width;
-                let h = img.naturalHeight || img.height;
-                if (w > MAX_DIM || h > MAX_DIM) {
-                    const r = Math.min(MAX_DIM / w, MAX_DIM / h);
-                    w = Math.round(w * r);
-                    h = Math.round(h * r);
+            // ==================== MODÈLE NSFW ====================
+            async function loadNSFWModel() {
+                console.log('Chargement du modèle NSFW...');
+                nsfwModel = await nsfwjs.load();
+                console.log('Modèle NSFW prêt.');
+            }
+            loadNSFWModel(); // lancement immédiat
+
+            async function isSafeImage(file) {
+                if (!nsfwModel) {
+                    console.warn('Modèle NSFW pas encore chargé, image acceptée.');
+                    return true;
                 }
-
-                // Créer le canvas de base
-                const canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-
-                // Copie pour la version lourde (on clone le canvas)
-                const heavyCanvas = document.createElement('canvas');
-                heavyCanvas.width = w;
-                heavyCanvas.height = h;
-                const heavyCtx = heavyCanvas.getContext('2d');
-                heavyCtx.drawImage(canvas, 0, 0);
-
-                // Appliquer le filigrane LÉGER sur le canvas original
-                applyWatermark(ctx, w, h, LIGHT_OPACITY, LIGHT_FONT_RATIO, LIGHT_SPACING_RATIO);
-                const lightDataURL = canvas.toDataURL('image/jpeg', 0.85);
-
-                // Appliquer le filigrane ÉNORME sur la copie
-                applyWatermark(heavyCtx, w, h, HEAVY_OPACITY, HEAVY_FONT_RATIO, HEAVY_SPACING_RATIO);
-                const heavyDataURL = heavyCanvas.toDataURL('image/jpeg', 0.85);
-
-                // Nettoyage
-                canvas.width = 0;
-                heavyCanvas.width = 0;
-
-                callback(lightDataURL, heavyDataURL);
+                try {
+                    const img = await createImageBitmap(file);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const predictions = await nsfwModel.classify(canvas);
+                    const forbidden = ['Porn', 'Hentai', 'Sexy'];
+                    for (let p of predictions) {
+                        if (forbidden.includes(p.className) && p.probability > NSFW_THRESHOLD) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } catch (e) {
+                    console.error('Erreur analyse NSFW:', e);
+                    return true; // en cas d'erreur on accepte
+                }
             }
 
+            // ==================== FILIGRANE ====================
             function applyWatermark(ctx, w, h, opacity, fontRatio, spacingRatio) {
                 const fontSize = Math.max(w * fontRatio, 24);
                 const spacing = Math.max(w * spacingRatio, fontSize * 2);
                 const angle = -30;
-
                 ctx.save();
                 ctx.globalAlpha = opacity;
                 ctx.fillStyle = '#ffffff';
                 ctx.strokeStyle = 'rgba(0,0,0,0.4)';
                 ctx.lineWidth = fontSize * 0.1;
-                ctx.font = `bold ${fontSize}px "Segoe UI", "Helvetica Neue", Arial, sans-serif`;
+                ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.translate(w / 2, h / 2);
                 ctx.rotate((angle * Math.PI) / 180);
-
                 const diag = Math.sqrt(w * w + h * h) * 1.6;
                 const stepX = ctx.measureText(WATERMARK_TEXT).width + fontSize * 1.6;
                 for (let y = -diag; y < diag; y += spacing) {
@@ -343,88 +522,136 @@
                 ctx.restore();
             }
 
-            // ==================== AJOUT D'IMAGE ====================
-            function addImageFromFile(file) {
+            function generateWatermarkVersions(imageElement, callback) {
+                const img = imageElement;
+                let w = img.naturalWidth || img.width;
+                let h = img.naturalHeight || img.height;
+                if (w > MAX_DIM || h > MAX_DIM) {
+                    const r = Math.min(MAX_DIM / w, MAX_DIM / h);
+                    w = Math.round(w * r);
+                    h = Math.round(h * r);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const heavyCanvas = document.createElement('canvas');
+                heavyCanvas.width = w;
+                heavyCanvas.height = h;
+                const heavyCtx = heavyCanvas.getContext('2d');
+                heavyCtx.drawImage(canvas, 0, 0);
+                applyWatermark(ctx, w, h, LIGHT_OPACITY, LIGHT_FONT_RATIO, LIGHT_SPACING_RATIO);
+                const lightURL = canvas.toDataURL('image/jpeg', 0.85);
+                applyWatermark(heavyCtx, w, h, HEAVY_OPACITY, HEAVY_FONT_RATIO, HEAVY_SPACING_RATIO);
+                const heavyURL = heavyCanvas.toDataURL('image/jpeg', 0.85);
+                callback(lightURL, heavyURL);
+            }
+
+            async function addImageFromFile(file) {
                 if (!file.type.startsWith('image/')) return;
+                const safe = await isSafeImage(file);
+                if (!safe) {
+                    alert('⛔ Contenu inapproprié détecté. Cette image ne peut pas être ajoutée.');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const tempImg = new Image();
                     tempImg.onload = function() {
-                        generateWatermarkVersions(tempImg, function(lightURL, heavyURL) {
-                            const newImg = {
+                        generateWatermarkVersions(tempImg, (lightURL, heavyURL) => {
+                            galleryImages.push({
                                 id: ++imageIdCounter,
                                 lightDataURL: lightURL,
                                 heavyDataURL: heavyURL,
                                 selected: false
-                            };
-                            galleryImages.push(newImg);
+                            });
                             renderGallery();
                             saveToStorage();
                         });
-                        tempImg.src = '';
                     };
                     tempImg.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
 
-            function handleFiles(files) {
+            async function handleFiles(files) {
                 if (!files || files.length === 0) return;
-                for (let i = 0; i < files.length; i++) addImageFromFile(files[i]);
+                for (let f of files) {
+                    await addImageFromFile(f);
+                }
                 fileInput.value = '';
             }
 
-            // ==================== RENDU + PROTECTION ====================
+            // ==================== ANTI-BOT ====================
+            function showBotChallenge(files) {
+                pendingFiles = files;
+                const n1 = Math.floor(Math.random() * 10) + 1;
+                const n2 = Math.floor(Math.random() * 10) + 1;
+                num1Span.textContent = n1;
+                num2Span.textContent = n2;
+                botAnswer.value = '';
+                botError.textContent = '';
+                botModal.classList.add('active');
+                botAnswer.focus();
+                botModal.dataset.expected = n1 + n2;
+            }
+
+            function hideBotChallenge() {
+                botModal.classList.remove('active');
+            }
+
+            btnBotVerify.addEventListener('click', () => {
+                const expected = parseInt(botModal.dataset.expected, 10);
+                const answer = parseInt(botAnswer.value.trim(), 10);
+                if (answer === expected) {
+                    antiBotPassed = true;
+                    hideBotChallenge();
+                    if (pendingFiles) {
+                        handleFiles(pendingFiles);
+                        pendingFiles = null;
+                    }
+                } else {
+                    botError.textContent = 'Réponse incorrecte. Réessayez.';
+                    botAnswer.value = '';
+                    botAnswer.focus();
+                }
+            });
+            botAnswer.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') btnBotVerify.click();
+            });
+
+            // ==================== RENDU ====================
             function renderGallery() {
                 galleryGrid.innerHTML = '';
                 const count = galleryImages.length;
-                galleryEmpty.style.display = count === 0 ? 'block' : 'none';
-                galleryGrid.style.display = count === 0 ? 'none' : 'grid';
+                galleryEmpty.style.display = count ? 'none' : 'block';
+                galleryGrid.style.display = count ? 'grid' : 'none';
 
                 galleryImages.forEach(imgObj => {
                     const item = document.createElement('div');
                     item.className = 'gallery-item' + (imgObj.selected ? ' selected' : '');
                     item.dataset.id = imgObj.id;
 
-                    const imageEl = document.createElement('img');
-                    imageEl.src = imgObj.lightDataURL;   // affichage normal : filigrane léger
-                    imageEl.draggable = false;
-                    imageEl.ondragstart = (e) => e.preventDefault(); // on gère nous-mêmes
-
-                    // ----- CLIC DROIT : remplacer par version lourde -----
-                    imageEl.addEventListener('contextmenu', function(e) {
-                        e.preventDefault(); // on bloque le menu natif pour le gérer
-                        activateHeavyMode(imgObj.id, imageEl);
-                        // Ouvrir le menu contextuel après un tout petit délai pour laisser le temps au navigateur
+                    const img = document.createElement('img');
+                    img.src = imgObj.lightDataURL;
+                    img.draggable = false;
+                    img.addEventListener('contextmenu', function(e) {
+                        e.preventDefault();
+                        activateHeavyMode(imgObj.id, img);
                         setTimeout(() => {
-                            // On ne peut pas ré-afficher le menu natif facilement, on va plutôt simuler un petit message
-                            // Mais on peut laisser le comportement par défaut après avoir changé l'image.
-                            // Pour cela, on va déclencher un nouveau clic droit après avoir changé la src.
-                            // Solution plus propre : on change la src puis on laisse le menu natif s'ouvrir.
-                            // On va donc ré-afficher le menu en utilisant un petit hack :
-                            const event = new MouseEvent('contextmenu', {
+                            const ev = new MouseEvent('contextmenu', {
                                 bubbles: true,
                                 cancelable: true,
                                 clientX: e.clientX,
                                 clientY: e.clientY
                             });
-                            imageEl.dispatchEvent(event);
+                            img.dispatchEvent(ev);
                         }, 10);
                     });
+                    img.addEventListener('dragstart', () => activateHeavyMode(imgObj.id, img));
+                    img.addEventListener('dragend', () => restoreLightMode(imgObj.id, img));
 
-                    // ----- DRAG : remplacer par version lourde -----
-                    imageEl.addEventListener('dragstart', function(e) {
-                        activateHeavyMode(imgObj.id, imageEl);
-                        // Le drag natif va utiliser l'image lourde
-                    });
-
-                    imageEl.addEventListener('dragend', function(e) {
-                        // Restaurer la version légère après le drag
-                        clearTimeout(heavyModeTimeouts[imgObj.id]);
-                        restoreLightMode(imgObj.id, imageEl);
-                    });
-
-                    // ----- Bouton de suppression -----
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'item-remove';
                     removeBtn.innerHTML = '✕';
@@ -433,10 +660,8 @@
                         removeImage(imgObj.id);
                     });
 
-                    item.appendChild(imageEl);
+                    item.appendChild(img);
                     item.appendChild(removeBtn);
-
-                    // Clic pour sélection
                     item.addEventListener('click', (e) => {
                         if (e.target === removeBtn) return;
                         toggleSelection(imgObj.id);
@@ -448,30 +673,22 @@
                 imageCountEl.textContent = count;
                 pluralEl.textContent = count === 1 ? '' : 's';
 
-                const selectedCount = galleryImages.filter(im => im.selected).length;
-                if (selectedCount > 0) {
-                    btnDeleteSelected.classList.add('visible');
-                    btnDeleteSelected.textContent = '🗑️ Retirer (' + selectedCount + ')';
-                } else {
-                    btnDeleteSelected.classList.remove('visible');
-                }
+                const sel = galleryImages.filter(im => im.selected).length;
+                btnDeleteSelected.classList.toggle('visible', sel > 0);
+                if (sel) btnDeleteSelected.textContent = `🗑️ Retirer (${sel})`;
             }
 
-            // Bascule en mode lourd (clic droit / drag)
-            function activateHeavyMode(id, imageEl) {
-                const imgObj = galleryImages.find(im => im.id == id);
-                if (!imgObj) return;
-                imageEl.src = imgObj.heavyDataURL;
-                // Restaurer automatiquement après 3 secondes si rien ne se passe
-                heavyModeTimeouts[id] = setTimeout(() => {
-                    restoreLightMode(id, imageEl);
-                }, 3000);
+            function activateHeavyMode(id, imgEl) {
+                const obj = galleryImages.find(im => im.id == id);
+                if (!obj) return;
+                imgEl.src = obj.heavyDataURL;
+                heavyModeTimeouts[id] = setTimeout(() => restoreLightMode(id, imgEl), 3000);
             }
 
-            function restoreLightMode(id, imageEl) {
-                const imgObj = galleryImages.find(im => im.id == id);
-                if (!imgObj) return;
-                imageEl.src = imgObj.lightDataURL;
+            function restoreLightMode(id, imgEl) {
+                const obj = galleryImages.find(im => im.id == id);
+                if (!obj) return;
+                imgEl.src = obj.lightDataURL;
                 clearTimeout(heavyModeTimeouts[id]);
                 delete heavyModeTimeouts[id];
             }
@@ -497,38 +714,61 @@
                 saveToStorage();
             }
 
-            // ==================== ÉVÉNEMENTS GLOBAUX ====================
-            fileInput.addEventListener('change', () => handleFiles(fileInput.files));
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+            // ==================== UPLOAD (vérification bot) ====================
+            function attemptUpload(files) {
+                if (!antiBotPassed) {
+                    showBotChallenge(files);
+                    return;
+                }
+                handleFiles(files);
+            }
+
+            fileInput.addEventListener('change', () => {
+                attemptUpload(fileInput.files);
+            });
+
+            dropZone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
             dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
             dropZone.addEventListener('drop', e => {
                 e.preventDefault();
                 dropZone.classList.remove('drag-over');
-                handleFiles(e.dataTransfer.files);
+                attemptUpload(e.dataTransfer.files);
             });
 
+            // Zone de drop globale
             document.addEventListener('dragover', e => {
-                if (!dropZone.contains(e.target)) { e.preventDefault(); dropZone.classList.add('drag-over'); }
+                if (!dropZone.contains(e.target)) {
+                    e.preventDefault();
+                    dropZone.classList.add('drag-over');
+                }
             });
             document.addEventListener('dragleave', e => {
-                if (!e.relatedTarget || e.relatedTarget === document.documentElement) dropZone.classList.remove('drag-over');
+                if (!e.relatedTarget || e.relatedTarget === document.documentElement)
+                    dropZone.classList.remove('drag-over');
             });
             document.addEventListener('drop', e => {
                 if (!dropZone.contains(e.target)) {
                     e.preventDefault();
                     dropZone.classList.remove('drag-over');
-                    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+                    if (e.dataTransfer.files.length) attemptUpload(e.dataTransfer.files);
                 }
             });
 
+            // Clic sur la zone = ouvre sélecteur fichier
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            // Bouton suppression sélection
             btnDeleteSelected.addEventListener('click', () => {
                 const sel = galleryImages.filter(im => im.selected).length;
-                if (sel && confirm(`Retirer ${sel} image(s) sélectionnée(s) ?`)) removeSelectedImages();
+                if (sel && confirm(`Retirer ${sel} image(s) ?`)) removeSelectedImages();
             });
 
+            // Échap pour désélectionner
             document.addEventListener('keydown', e => {
-                if (e.key === 'Escape' && mainContainer.classList.contains('visible')) {
+                if (e.key === 'Escape') {
                     if (galleryImages.some(im => im.selected)) {
                         galleryImages.forEach(im => im.selected = false);
                         renderGallery();
@@ -537,26 +777,8 @@
                 }
             });
 
-            // ==================== MOT DE PASSE ====================
-            function checkPassword() {
-                if (passwordInput.value.trim() === PASSWORD) {
-                    passwordOverlay.classList.add('hidden');
-                    mainContainer.classList.add('visible');
-                    passwordError.textContent = '';
-                    // Charger les images sauvegardées
-                    galleryImages = loadFromStorage();
-                    renderGallery();
-                } else {
-                    passwordError.textContent = 'Code incorrect.';
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
-            }
-            btnSubmitPassword.addEventListener('click', checkPassword);
-            passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
-            setTimeout(() => passwordInput.focus(), 400);
-
-            // Initialisation
+            // ==================== INITIALISATION ====================
+            galleryImages = loadFromStorage();
             renderGallery();
         })();
     </script>
