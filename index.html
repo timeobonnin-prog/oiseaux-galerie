@@ -556,7 +556,16 @@
                     zoomBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         openLightbox(img);
-                
+                    });
+
+                    // Bouton téléchargement (version lourde)
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.className = 'item-btn item-download';
+                    downloadBtn.innerHTML = '💾';
+                    downloadBtn.title = 'Télécharger (protégé)';
+                    downloadBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        downloadImage(img.heavyDataURL, `photo_${img.id}.jpg`);
                     });
 
                     // Bouton suppression (admin seulement)
