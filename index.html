@@ -89,7 +89,7 @@
             filter:drop-shadow(0 0 8px rgba(201,160,80,0.9));
         }
         .gallery-item img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
-        .item-remove, .item-zoom {
+        .item-btn {
             position:absolute; z-index:5; width:32px; height:32px; border-radius:50%;
             background:rgba(0,0,0,0.7); border:1px solid #555; color:#ccc;
             display:flex; align-items:center; justify-content:center;
@@ -98,9 +98,10 @@
         }
         .item-remove { top:10px; left:12px; }
         .item-zoom { top:10px; right:50px; }
-        .gallery-item:hover .item-remove, .gallery-item:hover .item-zoom { opacity:1; }
+        .item-download { top:10px; right:12px; }
+        .gallery-item:hover .item-btn { opacity:1; }
+        .item-btn:hover { background:rgba(201,160,80,0.3); border-color:var(--gold); color:var(--gold-light); }
         .item-remove:hover { background:rgba(180,30,30,0.8); border-color:#b33; color:#fff; }
-        .item-zoom:hover { background:rgba(201,160,80,0.3); border-color:var(--gold); color:var(--gold-light); }
 
         .watermark-badge {
             display:inline-flex; align-items:center; gap:6px;
@@ -116,6 +117,7 @@
             50%{box-shadow:0 0 16px rgba(224,200,120,0.9);}
         }
 
+        /* Lightbox avec navigation */
         .lightbox {
             position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,0.9);
             display:flex; align-items:center; justify-content:center;
@@ -134,15 +136,29 @@
         }
         .lightbox-copyright {
             margin-top:12px; color:var(--text-muted); font-size:0.85rem;
+            text-align:center; max-width:80%;
         }
-        .lightbox-close {
-            position:absolute; top:-15px; right:-15px; width:40px; height:40px;
-            border-radius:50%; background:var(--surface); border:1px solid var(--border);
-            color:var(--text); font-size:1.4rem; cursor:pointer;
+        .lightbox-nav {
+            position:absolute; top:50%; transform:translateY(-50%);
+            width:45px; height:45px; border-radius:50%; background:rgba(0,0,0,0.6);
+            border:1px solid var(--border); color:var(--text); font-size:1.8rem;
             display:flex; align-items:center; justify-content:center;
-            transition:var(--transition);
+            cursor:pointer; transition:var(--transition); z-index:10;
         }
+        .lightbox-nav:hover { background:var(--gold); color:#1a1a1a; }
+        .lightbox-prev { left:20px; }
+        .lightbox-next { right:20px; }
+        .lightbox-close, .lightbox-download {
+            position:absolute; top:20px; width:40px; height:40px;
+            border-radius:50%; background:rgba(0,0,0,0.7); border:1px solid var(--border);
+            color:var(--text); font-size:1.3rem; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            transition:var(--transition); z-index:10;
+        }
+        .lightbox-close { right:20px; }
+        .lightbox-download { right:70px; }
         .lightbox-close:hover { background:#a33; color:#fff; }
+        .lightbox-download:hover { background:var(--gold); color:#1a1a1a; }
 
         .modal-overlay {
             position:fixed; inset:0; background:rgba(0,0,0,0.85);
@@ -160,9 +176,12 @@
         .error { color:#e88; font-size:0.85rem; }
         .btn { padding:14px 28px; border-radius:50px; border:none; cursor:pointer; font-weight:600; }
         .btn-gold { background:linear-gradient(135deg, var(--gold-dark),var(--gold),var(--gold-light)); color:#1a1a1a; }
+
         @media (max-width:768px) {
             .header { flex-direction:column; text-align:center; }
             .gallery-grid { grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
+            .lightbox-nav { width:35px; height:35px; font-size:1.4rem; }
+            .lightbox-prev { left:10px; } .lightbox-next { right:10px; }
         }
     </style>
 </head>
@@ -171,6 +190,9 @@
         <div class="lightbox-content">
             <img id="lightbox-img" src="" alt="Agrandissement">
             <div class="lightbox-copyright" id="lightbox-copyright"></div>
+            <button class="lightbox-nav lightbox-prev" id="lightbox-prev" title="Précédent">◀</button>
+            <button class="lightbox-nav lightbox-next" id="lightbox-next" title="Suivant">▶</button>
+            <button class="lightbox-download" id="lightbox-download" title="Télécharger (filigrané)">💾</button>
             <button class="lightbox-close" id="lightbox-close">✕</button>
         </div>
     </div>
@@ -212,19 +234,18 @@
     <script>
         (function(){
             // ---------- CONSTANTES ----------
-            const ADMIN_PASSWORD_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"; // "password"
-            const WATERMARK_TEXT = "© Tous droits réservés 2024 – Votre Nom";
+            const ADMIN_PASSWORD_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
+            const WATERMARK_TEXT = "© Timéo Bonnin – Tous droits réservés";
             const LIGHT_OPACITY = 0.12, LIGHT_FONT_RATIO = 0.06, LIGHT_SPACING_RATIO = 0.25;
             const HEAVY_OPACITY = 0.75, HEAVY_FONT_RATIO = 0.13, HEAVY_SPACING_RATIO = 0.16;
-            const MAX_DIM = 1200; // un peu plus petit pour gagner de la place
+            const MAX_DIM = 1200;
             const DB_NAME = "PhotoGalleryDB", STORE_NAME = "images", DB_VERSION = 1;
 
             let nsfwModel = null;
             let isAdmin = false;
-            let currentSort = "newest"; // "newest" ou "oldest"
-            let galleryImages = [];      // tableau en mémoire { id, lightURL, heavyURL, timestamp, selected }
+            let currentSort = "newest";
+            let galleryImages = [];
 
-            // DOM
             const galleryGrid = document.getElementById('gallery-grid');
             const galleryEmpty = document.getElementById('gallery-empty');
             const imageCountEl = document.getElementById('image-count');
@@ -243,8 +264,12 @@
             const lightboxImg = document.getElementById('lightbox-img');
             const lightboxCopyright = document.getElementById('lightbox-copyright');
             const lightboxClose = document.getElementById('lightbox-close');
+            const lightboxDownload = document.getElementById('lightbox-download');
+            const lightboxPrev = document.getElementById('lightbox-prev');
+            const lightboxNext = document.getElementById('lightbox-next');
 
             let db = null;
+            let currentLightboxIndex = -1;  // index dans galleryImages (triée)
 
             // ---------- INDEXEDDB ----------
             function openDB() {
@@ -305,13 +330,6 @@
                 });
             }
 
-            async function updateImageSelection(id, selected) {
-                // la sélection n'est pas persistante (juste en mémoire)
-                const img = galleryImages.find(i => i.id === id);
-                if (img) img.selected = selected;
-                renderGallery();
-            }
-
             // ---------- FILIGRANE ----------
             function applyWatermark(ctx, w, h, opacity, fontRatio, spacingRatio) {
                 const fontSize = Math.max(w * fontRatio, 24);
@@ -349,6 +367,25 @@
                 const light = canvas.toDataURL('image/jpeg', 0.82);
                 const heavy = heavyCanvas.toDataURL('image/jpeg', 0.82);
                 callback(light, heavy);
+            }
+
+            // ---------- TÉLÉCHARGEMENT ----------
+            function downloadImage(dataURL, filename = 'image_protegee.jpg') {
+                const parts = dataURL.split(',');
+                const mime = parts[0].match(/:(.*?);/)[1];
+                const bstr = atob(parts[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) { u8arr[n] = bstr.charCodeAt(n); }
+                const blob = new Blob([u8arr], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
 
             // ---------- NSFW ----------
@@ -400,9 +437,88 @@
                 sortOldest.classList.toggle('active', order === 'oldest');
                 sortImages();
                 renderGallery();
+                // Si lightbox ouverte, recalculer l'index
+                if (lightbox.classList.contains('active') && currentLightboxIndex >= 0) {
+                    const currentImg = galleryImages[currentLightboxIndex];
+                    if (currentImg) updateLightboxContent(currentImg, currentLightboxIndex);
+                }
             }
 
-            // ---------- RENDU ----------
+            // ---------- LIGHTBOX avec navigation ----------
+            function openLightboxAtIndex(index) {
+                if (index < 0 || index >= galleryImages.length) return;
+                currentLightboxIndex = index;
+                const img = galleryImages[index];
+                updateLightboxContent(img, index);
+                lightbox.classList.add('active');
+            }
+
+            function openLightbox(imgObj) {
+                const index = galleryImages.findIndex(i => i.id === imgObj.id);
+                if (index !== -1) openLightboxAtIndex(index);
+            }
+
+            function updateLightboxContent(img, index) {
+                lightboxImg.src = img.lightDataURL;
+                lightboxCopyright.textContent = `${WATERMARK_TEXT} – Image ${index+1}/${galleryImages.length}`;
+                // Protection copie
+                lightboxImg.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    lightboxImg.src = img.heavyDataURL;
+                    setTimeout(() => { if (lightbox.classList.contains('active')) lightboxImg.src = img.lightDataURL; }, 3000);
+                };
+                lightboxImg.ondragstart = (e) => {
+                    e.preventDefault();
+                    lightboxImg.src = img.heavyDataURL;
+                };
+                // Bouton téléchargement
+                lightboxDownload.onclick = () => downloadImage(img.heavyDataURL, `photo_${img.id}.jpg`);
+                // Afficher/masquer boutons de navigation
+                lightboxPrev.style.display = index > 0 ? 'flex' : 'none';
+                lightboxNext.style.display = index < galleryImages.length - 1 ? 'flex' : 'none';
+            }
+
+            function navigateLightbox(direction) {
+                if (!lightbox.classList.contains('active')) return;
+                const newIndex = currentLightboxIndex + direction;
+                if (newIndex >= 0 && newIndex < galleryImages.length) {
+                    openLightboxAtIndex(newIndex);
+                }
+            }
+
+            lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
+            lightboxNext.addEventListener('click', () => navigateLightbox(1));
+
+            // Navigation au clavier
+            document.addEventListener('keydown', (e) => {
+                if (!lightbox.classList.contains('active')) return;
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    navigateLightbox(-1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    navigateLightbox(1);
+                } else if (e.key === 'Escape') {
+                    lightbox.classList.remove('active');
+                    currentLightboxIndex = -1;
+                    lightboxImg.src = '';
+                }
+            });
+
+            lightboxClose.onclick = () => {
+                lightbox.classList.remove('active');
+                currentLightboxIndex = -1;
+                lightboxImg.src = '';
+            };
+            lightbox.addEventListener('click', (e) => {
+                if(e.target === lightbox) {
+                    lightbox.classList.remove('active');
+                    currentLightboxIndex = -1;
+                    lightboxImg.src = '';
+                }
+            });
+
+            // ---------- RENDU GALERIE ----------
             let heavyTimeouts = {};
             function activateHeavy(id, imgEl) {
                 const img = galleryImages.find(i => i.id === id);
@@ -417,14 +533,6 @@
                 clearTimeout(heavyTimeouts[id]);
                 delete heavyTimeouts[id];
             }
-
-            function openLightbox(imgObj) {
-                lightboxImg.src = imgObj.lightDataURL;
-                lightboxCopyright.textContent = `${WATERMARK_TEXT} – Agrandissement protégé`;
-                lightbox.classList.add('active');
-            }
-            lightboxClose.onclick = () => lightbox.classList.remove('active');
-            lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.classList.remove('active'); });
 
             function toggleSelection(id) {
                 const img = galleryImages.find(i => i.id === id);
@@ -457,15 +565,46 @@
                     const imageElem = document.createElement('img');
                     imageElem.src = img.lightDataURL;
                     imageElem.draggable = false;
-                    imageElem.addEventListener('contextmenu', (e) => { e.preventDefault(); activateHeavy(img.id, imageElem); setTimeout(() => { const ev = new MouseEvent('contextmenu', {bubbles:true, clientX:e.clientX, clientY:e.clientY}); imageElem.dispatchEvent(ev); }, 10); });
+                    imageElem.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        activateHeavy(img.id, imageElem);
+                        setTimeout(() => {
+                            const ev = new MouseEvent('contextmenu', {bubbles:true, clientX:e.clientX, clientY:e.clientY});
+                            imageElem.dispatchEvent(ev);
+                        }, 10);
+                    });
                     imageElem.addEventListener('dragstart', () => activateHeavy(img.id, imageElem));
                     imageElem.addEventListener('dragend', () => restoreLight(img.id, imageElem));
-                    const zoomBtn = document.createElement('button'); zoomBtn.className='item-zoom'; zoomBtn.innerHTML='🔍';
+
+                    const zoomBtn = document.createElement('button');
+                    zoomBtn.className = 'item-btn item-zoom';
+                    zoomBtn.innerHTML = '🔍';
+                    zoomBtn.title = 'Agrandir';
                     zoomBtn.onclick = (e) => { e.stopPropagation(); openLightbox(img); };
-                    const delBtn = document.createElement('button'); delBtn.className='item-remove' + (!isAdmin ? ' hidden-admin' : ''); delBtn.innerHTML='✕';
+
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.className = 'item-btn item-download';
+                    downloadBtn.innerHTML = '💾';
+                    downloadBtn.title = 'Télécharger (protégé)';
+                    downloadBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        downloadImage(img.heavyDataURL, `photo_${img.id}.jpg`);
+                    };
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'item-btn item-remove' + (!isAdmin ? ' hidden-admin' : '');
+                    delBtn.innerHTML = '✕';
+                    delBtn.title = 'Supprimer';
                     delBtn.onclick = (e) => { e.stopPropagation(); removeImage(img.id); };
-                    item.appendChild(imageElem); item.appendChild(zoomBtn); item.appendChild(delBtn);
-                    item.addEventListener('click', (e) => { if(e.target === delBtn || e.target === zoomBtn) return; toggleSelection(img.id); });
+
+                    item.appendChild(imageElem);
+                    item.appendChild(zoomBtn);
+                    item.appendChild(downloadBtn);
+                    item.appendChild(delBtn);
+                    item.addEventListener('click', (e) => {
+                        if(e.target === delBtn || e.target === zoomBtn || e.target === downloadBtn) return;
+                        toggleSelection(img.id);
+                    });
                     galleryGrid.appendChild(item);
                 }
                 imageCountEl.textContent = count;
@@ -489,24 +628,43 @@
                 document.querySelectorAll('.hidden-admin').forEach(el => el.classList.toggle('hidden-admin', !admin));
                 renderGallery();
             }
-            btnOpenAdmin.onclick = () => adminModal.classList.add('active');
+            btnOpenAdmin.onclick = () => { adminModal.classList.add('active'); adminPassword.focus(); };
             btnAdminLogin.onclick = async () => {
                 const pwd = adminPassword.value;
                 if (await checkAdmin(pwd)) {
                     setAdminMode(true);
                     adminModal.classList.remove('active');
                     adminError.textContent = '';
-                } else adminError.textContent = 'Mot de passe incorrect';
+                    adminPassword.value = '';
+                } else {
+                    adminError.textContent = 'Mot de passe incorrect';
+                }
             };
-            // fermeture modal au clic extérieur
             adminModal.onclick = (e) => { if(e.target === adminModal) adminModal.classList.remove('active'); };
+            adminPassword.addEventListener('keydown', (e) => { if(e.key === 'Enter') btnAdminLogin.click(); });
 
             // ---------- DRAG & UPLOAD ----------
-            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('click', () => { if(isAdmin) fileInput.click(); });
             dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
             dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-            dropZone.addEventListener('drop', async (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')); if(files.length) await handleFiles(files); });
+            dropZone.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                if(!isAdmin) { alert("🔒 Seul l'administrateur peut ajouter des images."); return; }
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                if(files.length) await handleFiles(files);
+            });
             fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+
+            // Échap pour désélectionner en galerie
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !lightbox.classList.contains('active')) {
+                    if (galleryImages.some(i => i.selected)) {
+                        galleryImages.forEach(i => i.selected = false);
+                        renderGallery();
+                    }
+                }
+            });
 
             // ---------- INIT ----------
             async function init() {
