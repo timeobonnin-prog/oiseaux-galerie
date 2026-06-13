@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galerie Protégée – Anti‑bot & filtre NSFW</title>
+    <title>Galerie Protégée – Public + Admin</title>
     <style>
         :root {
             --bg: #0d0d0d;
@@ -26,372 +26,131 @@
             min-height: 100vh;
             user-select: none;
             -webkit-user-select: none;
-            background-image:
-                radial-gradient(ellipse at 50% 0%, rgba(201,160,80,0.06) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(201,160,80,0.03) 0%, transparent 50%);
+            background-image: radial-gradient(ellipse at 50% 0%, rgba(201,160,80,0.06) 0%, transparent 60%);
             background-attachment: fixed;
         }
-        #main-container {
-            min-height: 100vh;
-            padding: 30px 20px 60px;
-        }
+        #main-container { min-height:100vh; padding:30px 20px 60px; }
         .header {
-            max-width: 1200px;
-            margin: 0 auto 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 20px 28px;
-            background: var(--surface);
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            max-width:1200px; margin:0 auto 30px; display:flex; align-items:center;
+            justify-content:space-between; flex-wrap:wrap; gap:20px; padding:20px 28px;
+            background:var(--surface); border-radius:var(--radius); border:1px solid var(--border);
+            box-shadow:0 8px 32px rgba(0,0,0,0.4);
         }
-        .header-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .header-title { display:flex; align-items:center; gap:12px; }
+        .header-title .icon { font-size:2rem; filter:drop-shadow(0 0 12px rgba(201,160,80,0.5)); }
+        .header-title h2 { font-size:1.5rem; font-weight:700; color:var(--gold-light); }
+        .header-info { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+        .counter { background:var(--bg); padding:10px 18px; border-radius:50px; font-size:0.9rem; color:var(--text-muted); border:1px solid var(--border); }
+        .counter strong { color:var(--gold-light); }
+        .btn-upload, .btn-delete-selected, .admin-btn {
+            display:flex; align-items:center; gap:8px; padding:12px 24px; border-radius:50px;
+            background:linear-gradient(135deg, var(--gold-dark), var(--gold)); color:#1a1a1a;
+            font-weight:700; border:none; cursor:pointer; position:relative; overflow:hidden;
+            box-shadow:0 4px 18px rgba(201,160,80,0.3); transition:var(--transition);
         }
-        .header-title .icon {
-            font-size: 2rem;
-            filter: drop-shadow(0 0 12px rgba(201,160,80,0.5));
-        }
-        .header-title h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gold-light);
-        }
-        .header-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .counter {
-            background: var(--bg);
-            padding: 10px 18px;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-        }
-        .counter strong {
-            color: var(--gold-light);
-        }
-        .btn-upload {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            border-radius: 50px;
-            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-            color: #1a1a1a;
-            font-weight: 700;
-            border: none;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 18px rgba(201,160,80,0.3);
-            transition: var(--transition);
-        }
-        .btn-upload:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 28px rgba(224,200,120,0.5);
-        }
-        .btn-upload input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-        .btn-delete-selected {
-            padding: 12px 20px;
-            border-radius: 50px;
-            background: transparent;
-            color: #c77;
-            border: 1.5px solid #5a2a2a;
-            font-weight: 600;
-            cursor: pointer;
-            display: none;
-            transition: var(--transition);
-        }
-        .btn-delete-selected.visible {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-delete-selected:hover {
-            background: #2a1010;
-            border-color: #a33;
-            color: #f88;
-            box-shadow: 0 0 20px rgba(180,40,40,0.3);
-        }
+        .btn-upload input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+        .btn-upload:hover, .btn-delete-selected:hover, .admin-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(224,200,120,0.5); }
+        .btn-delete-selected { background:transparent; color:#c77; border:1.5px solid #5a2a2a; display:none; }
+        .btn-delete-selected.visible { display:inline-flex; }
+        .btn-delete-selected:hover { background:#2a1010; border-color:#a33; color:#f88; }
+        .admin-btn { background:transparent; border:1.5px solid var(--gold); color:var(--gold-light); font-weight:600; padding:10px 18px; }
+        .admin-controls { display:flex; gap:10px; align-items:center; }
+        .hidden-admin { display:none!important; }
         .drop-zone {
-            max-width: 1200px;
-            margin: 0 auto 30px;
-            padding: 50px 30px;
-            text-align: center;
-            border: 2px dashed #444;
-            border-radius: var(--radius);
-            background: var(--surface);
-            cursor: pointer;
-            transition: var(--transition);
+            max-width:1200px; margin:0 auto 30px; padding:50px 30px; text-align:center;
+            border:2px dashed #444; border-radius:var(--radius); background:var(--surface);
+            cursor:pointer; transition:var(--transition);
         }
-        .drop-zone.drag-over {
-            border-color: var(--gold);
-            background: #1e1e1e;
-            box-shadow: 0 0 40px rgba(201,160,80,0.15);
-        }
-        .drop-icon {
-            font-size: 3rem;
-            margin-bottom: 12px;
-        }
-        .gallery-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .gallery-empty {
-            text-align: center;
-            padding: 80px 20px;
-            color: #444;
-        }
-        .gallery-empty .empty-icon {
-            font-size: 5rem;
-            display: block;
-            margin-bottom: 16px;
-            opacity: 0.4;
-        }
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 20px;
-            padding: 0;
-            list-style: none;
-        }
-        .gallery-item {
-            position: relative;
-            border-radius: var(--radius);
-            overflow: hidden;
-            background: var(--surface2);
-            border: 2px solid transparent;
-            aspect-ratio: 4/3;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .gallery-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--gold-dark);
-            border-color: #555;
-        }
-        .gallery-item.selected {
-            border-color: var(--gold) !important;
-            box-shadow: 0 0 25px var(--gold-glow), 0 0 50px var(--gold-glow), 0 0 80px rgba(201,160,80,0.25);
-            animation: selectedGlow 2s infinite;
-        }
-        @keyframes selectedGlow {
-            0%, 100% { box-shadow: 0 0 25px var(--gold-glow), 0 0 50px var(--gold-glow), 0 0 80px rgba(201,160,80,0.25); }
-            50% { box-shadow: 0 0 40px rgba(224,200,120,0.9), 0 0 70px rgba(224,200,120,0.7), 0 0 100px rgba(224,200,120,0.4); }
-        }
-        .gallery-item.selected::after {
-            content: '★';
-            position: absolute;
-            top: 12px;
-            right: 14px;
-            font-size: 1.4rem;
-            color: var(--gold-light);
-            z-index: 5;
-            filter: drop-shadow(0 0 8px rgba(201,160,80,0.9));
-        }
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            pointer-events: none;
-            user-drag: none;
-            -webkit-user-drag: none;
-        }
-        .item-remove {
-            position: absolute;
-            top: 10px;
-            left: 12px;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.7);
-            border: 1px solid #555;
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .gallery-item:hover .item-remove {
-            opacity: 1;
-        }
-        .item-remove:hover {
-            background: rgba(180,30,30,0.8);
-            border-color: #b33;
-            color: #fff;
-        }
-        .watermark-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--bg);
-            padding: 8px 14px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            color: var(--gold-light);
-            border: 1px solid #3a3020;
-        }
-        .watermark-badge .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--gold);
-            animation: pulseDot 1.5s infinite;
-        }
-        @keyframes pulseDot {
-            0%, 100% { box-shadow: 0 0 6px var(--gold-glow); }
-            50% { box-shadow: 0 0 16px rgba(224,200,120,0.9); }
-        }
+        .drop-zone.drag-over { border-color:var(--gold); background:#1e1e1e; box-shadow:0 0 40px rgba(201,160,80,0.15); }
+        .drop-icon { font-size:3rem; margin-bottom:12px; }
+        .gallery-container { max-width:1200px; margin:0 auto; }
+        .gallery-empty { text-align:center; padding:80px 20px; color:#444; }
+        .gallery-empty .empty-icon { font-size:5rem; display:block; margin-bottom:16px; opacity:0.4; }
+        .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:20px; padding:0; }
+        .gallery-item { position:relative; border-radius:var(--radius); overflow:hidden; background:var(--surface2); border:2px solid transparent; aspect-ratio:4/3; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer; transition:var(--transition); }
+        .gallery-item:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,0.6),0 0 0 1px var(--gold-dark); border-color:#555; }
+        .gallery-item.selected { border-color:var(--gold)!important; box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25); animation:selectedGlow 2s infinite; }
+        @keyframes selectedGlow { 0%,100%{box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);} 50%{box-shadow:0 0 40px rgba(224,200,120,0.9),0 0 70px rgba(224,200,120,0.7),0 0 100px rgba(224,200,120,0.4);} }
+        .gallery-item.selected::after { content:'★'; position:absolute; top:12px; right:14px; font-size:1.4rem; color:var(--gold-light); z-index:5; }
+        .gallery-item img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
+        .item-remove { position:absolute; top:10px; left:12px; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.7); border:1px solid #555; color:#ccc; display:flex; align-items:center; justify-content:center; opacity:0; cursor:pointer; transition:var(--transition); }
+        .gallery-item:hover .item-remove { opacity:1; }
+        .item-remove:hover { background:rgba(180,30,30,0.8); border-color:#b33; color:#fff; }
+        .watermark-badge { display:inline-flex; align-items:center; gap:6px; background:var(--bg); padding:8px 14px; border-radius:50px; font-size:0.8rem; color:var(--gold-light); border:1px solid #3a3020; }
+        .watermark-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--gold); animation:pulseDot 1.5s infinite; }
+        @keyframes pulseDot { 0%,100%{box-shadow:0 0 6px var(--gold-glow);} 50%{box-shadow:0 0 16px rgba(224,200,120,0.9);} }
 
-        /* Pop-up anti-bot */
+        /* Pop‑up admin */
         .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            opacity: 0;
-            visibility: hidden;
-            transition: 0.3s;
+            position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center;
+            justify-content:center; z-index:2000; opacity:0; visibility:hidden; transition:0.3s;
         }
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
+        .modal-overlay.active { opacity:1; visibility:visible; }
         .modal-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 0 40px rgba(201,160,80,0.2);
+            background:var(--surface); border:1px solid var(--border); border-radius:16px;
+            padding:30px; text-align:center; max-width:400px; width:90%;
+            box-shadow:0 0 40px rgba(201,160,80,0.2);
         }
-        .modal-box h3 {
-            color: var(--gold-light);
-            margin-bottom: 12px;
-        }
-        .modal-box input {
-            padding: 10px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
-            width: 80%;
-            text-align: center;
-            margin-bottom: 12px;
-        }
-        .error {
-            color: #e88;
-            font-size: 0.85rem;
-            min-height: 20px;
-            margin-top: 8px;
-        }
-        .btn {
-            padding: 14px 28px;
-            border-radius: 50px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            width: 100%;
-            transition: var(--transition);
-        }
-        .btn-gold {
-            background: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
-            color: #1a1a1a;
-            box-shadow: 0 4px 20px rgba(201,160,80,0.35);
-        }
-        .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 30px rgba(224,200,120,0.55);
-        }
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                text-align: center;
-                padding: 16px 20px;
-            }
-            .gallery-grid {
-                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-                gap: 12px;
-            }
-            .drop-zone {
-                padding: 30px 16px;
-            }
+        .modal-box h3 { color:var(--gold-light); margin-bottom:12px; }
+        .modal-box input { padding:10px; border-radius:20px; border:1px solid var(--border); background:var(--bg); color:var(--text); width:80%; text-align:center; margin-bottom:12px; }
+        .error { color:#e88; font-size:0.85rem; min-height:20px; margin-top:8px; }
+        .btn { padding:14px 28px; border-radius:50px; border:none; cursor:pointer; font-weight:600; font-size:0.95rem; width:100%; }
+        .btn-gold { background:linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light)); color:#1a1a1a; box-shadow:0 4px 20px rgba(201,160,80,0.35); }
+        .btn-gold:hover { transform:translateY(-2px); box-shadow:0 6px 30px rgba(224,200,120,0.55); }
+        @media (max-width:768px) {
+            .header { flex-direction:column; text-align:center; padding:16px 20px; }
+            .gallery-grid { grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
+            .drop-zone { padding:30px 16px; }
         }
     </style>
 </head>
 <body>
-
-    <!-- Anti-bot popup -->
-    <div class="modal-overlay" id="bot-modal">
+    <!-- Pop‑up admin (connexion) -->
+    <div class="modal-overlay" id="admin-modal">
         <div class="modal-box">
-            <h3>🛡️ Vérification humaine</h3>
-            <p id="bot-question">Combien font <span id="num1"></span> + <span id="num2"></span> ?</p>
-            <input type="text" id="bot-answer" placeholder="Votre réponse" inputmode="numeric">
-            <button class="btn btn-gold" id="btn-bot-verify">Vérifier</button>
-            <p class="error" id="bot-error"></p>
+            <h3>🔐 Administration</h3>
+            <p style="color:var(--text-muted);margin-bottom:12px;">Connectez‑vous pour gérer la galerie</p>
+            <input type="password" id="admin-password" placeholder="Mot de passe" autocomplete="off">
+            <button class="btn btn-gold" id="btn-admin-login">Valider</button>
+            <p class="error" id="admin-error"></p>
         </div>
     </div>
 
-    <!-- Galerie principale -->
+    <!-- Galerie -->
     <div id="main-container">
         <div class="header">
             <div class="header-title">
                 <span class="icon">🖼️</span>
-                <h2>Ma Galerie</h2>
+                <h2>Galerie publique</h2>
             </div>
             <div class="header-info">
                 <span class="watermark-badge"><span class="dot"></span> Protection active</span>
                 <span class="counter"><strong id="image-count">0</strong> image<span id="plural">s</span></span>
-                <button class="btn-upload" id="btn-upload-area">
+                <button class="admin-btn" id="btn-open-admin">🔒 Admin</button>
+                <button class="btn-upload hidden-admin" id="btn-upload-area">
                     📁 Ajouter
                     <input type="file" id="file-input" accept="image/*" multiple>
                 </button>
-                <button class="btn-delete-selected" id="btn-delete-selected">🗑️ Retirer sélection</button>
+                <button class="btn-delete-selected hidden-admin" id="btn-delete-selected">🗑️ Retirer sélection</button>
             </div>
         </div>
 
-        <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone hidden-admin" id="drop-zone">
             <span class="drop-icon">📥</span>
-            <p><strong>Glissez-déposez</strong> vos photos ici<br>ou cliquez pour parcourir</p>
-            <p style="font-size:0.8rem;margin-top:6px;color:#555;">
-                Affichage net • Clic droit / drag = filigrane énorme
-            </p>
+            <p><strong>Glissez‑déposez</strong> vos photos ici<br>ou cliquez pour parcourir</p>
+            <p style="font-size:0.8rem;margin-top:6px;color:#555;">Seuls les administrateurs peuvent ajouter des images.</p>
         </div>
 
         <div class="gallery-container">
             <div class="gallery-empty" id="gallery-empty">
                 <span class="empty-icon">📭</span>
-                <p>Aucune photo pour l'instant.<br>Ajoutez des images pour commencer.</p>
+                <p>Aucune photo pour l'instant.</p>
             </div>
             <div class="gallery-grid" id="gallery-grid"></div>
         </div>
     </div>
 
-    <!-- Librairies NSFW -->
+    <!-- Librairies -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js">
     </script>
     <script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.0/dist/nsfwjs.min.js">
@@ -399,30 +158,26 @@
 
     <script>
         (function() {
-            // ==================== CONFIGURATION ====================
+            // ==================== CONFIG ====================
+            const ADMIN_PASSWORD = 'admin123';          // mot de passe admin
             const WATERMARK_TEXT = '© PROTÉGÉ';
-            // Filigrane discret (affichage normal)
             const LIGHT_OPACITY = 0.12;
             const LIGHT_FONT_RATIO = 0.06;
             const LIGHT_SPACING_RATIO = 0.25;
-            // Filigrane énorme (copie/drag)
             const HEAVY_OPACITY = 0.75;
             const HEAVY_FONT_RATIO = 0.13;
             const HEAVY_SPACING_RATIO = 0.16;
-
             const MAX_DIM = 1400;
             const STORAGE_KEY = 'protected_gallery_images';
-            const NSFW_THRESHOLD = 0.5; // à partir de quelle probabilité on bloque
+            const NSFW_THRESHOLD = 0.5;
 
-            // ==================== ÉTAT ====================
             let galleryImages = [];
             let imageIdCounter = Date.now();
             let heavyModeTimeouts = {};
             let nsfwModel = null;
-            let antiBotPassed = false;       // défi validé pour cette session
-            let pendingFiles = null;         // fichiers en attente après vérification bot
+            let isAdmin = false;
 
-            // ==================== DOM ====================
+            // DOM
             const mainContainer = document.getElementById('main-container');
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
@@ -431,13 +186,13 @@
             const imageCountEl = document.getElementById('image-count');
             const pluralEl = document.getElementById('plural');
             const btnDeleteSelected = document.getElementById('btn-delete-selected');
-
-            const botModal = document.getElementById('bot-modal');
-            const num1Span = document.getElementById('num1');
-            const num2Span = document.getElementById('num2');
-            const botAnswer = document.getElementById('bot-answer');
-            const btnBotVerify = document.getElementById('btn-bot-verify');
-            const botError = document.getElementById('bot-error');
+            const btnUploadArea = document.getElementById('btn-upload-area');
+            const btnOpenAdmin = document.getElementById('btn-open-admin');
+            const adminModal = document.getElementById('admin-modal');
+            const adminPassword = document.getElementById('admin-password');
+            const btnAdminLogin = document.getElementById('btn-admin-login');
+            const adminError = document.getElementById('admin-error');
+            const allAdminControls = document.querySelectorAll('.hidden-admin');
 
             // ==================== PERSISTANCE ====================
             function saveToStorage() {
@@ -447,53 +202,37 @@
                     heavyDataURL: img.heavyDataURL,
                     selected: img.selected
                 }));
-                try {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                } catch (e) {}
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
             }
 
             function loadFromStorage() {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (!raw) return [];
-                try {
-                    return JSON.parse(raw);
-                } catch (e) {
-                    return [];
-                }
+                try { return JSON.parse(raw); } catch(e) { return []; }
             }
 
-            // ==================== MODÈLE NSFW ====================
+            // ==================== NSFW ====================
             async function loadNSFWModel() {
-                console.log('Chargement du modèle NSFW...');
+                console.log('Chargement modèle NSFW...');
                 nsfwModel = await nsfwjs.load();
                 console.log('Modèle NSFW prêt.');
             }
-            loadNSFWModel(); // lancement immédiat
+            loadNSFWModel();
 
             async function isSafeImage(file) {
-                if (!nsfwModel) {
-                    console.warn('Modèle NSFW pas encore chargé, image acceptée.');
-                    return true;
-                }
+                if (!nsfwModel) return true;
                 try {
                     const img = await createImageBitmap(file);
                     const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    canvas.width = img.width; canvas.height = img.height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
                     const predictions = await nsfwModel.classify(canvas);
                     const forbidden = ['Porn', 'Hentai', 'Sexy'];
-                    for (let p of predictions) {
-                        if (forbidden.includes(p.className) && p.probability > NSFW_THRESHOLD) {
-                            return false;
-                        }
-                    }
+                    for (let p of predictions)
+                        if (forbidden.includes(p.className) && p.probability > NSFW_THRESHOLD) return false;
                     return true;
-                } catch (e) {
-                    console.error('Erreur analyse NSFW:', e);
-                    return true; // en cas d'erreur on accepte
-                }
+                } catch (e) { return true; }
             }
 
             // ==================== FILIGRANE ====================
@@ -509,38 +248,29 @@
                 ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.translate(w / 2, h / 2);
+                ctx.translate(w/2, h/2);
                 ctx.rotate((angle * Math.PI) / 180);
-                const diag = Math.sqrt(w * w + h * h) * 1.6;
-                const stepX = ctx.measureText(WATERMARK_TEXT).width + fontSize * 1.6;
-                for (let y = -diag; y < diag; y += spacing) {
+                const diag = Math.sqrt(w*w + h*h) * 1.6;
+                const stepX = ctx.measureText(WATERMARK_TEXT).width + fontSize*1.6;
+                for (let y = -diag; y < diag; y += spacing)
                     for (let x = -diag; x < diag; x += stepX) {
                         ctx.strokeText(WATERMARK_TEXT, x, y);
                         ctx.fillText(WATERMARK_TEXT, x, y);
                     }
-                }
                 ctx.restore();
             }
 
             function generateWatermarkVersions(imageElement, callback) {
                 const img = imageElement;
-                let w = img.naturalWidth || img.width;
-                let h = img.naturalHeight || img.height;
+                let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
                 if (w > MAX_DIM || h > MAX_DIM) {
                     const r = Math.min(MAX_DIM / w, MAX_DIM / h);
-                    w = Math.round(w * r);
-                    h = Math.round(h * r);
+                    w = Math.round(w * r); h = Math.round(h * r);
                 }
-                const canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                const heavyCanvas = document.createElement('canvas');
-                heavyCanvas.width = w;
-                heavyCanvas.height = h;
-                const heavyCtx = heavyCanvas.getContext('2d');
-                heavyCtx.drawImage(canvas, 0, 0);
+                const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+                const heavyCanvas = document.createElement('canvas'); heavyCanvas.width = w; heavyCanvas.height = h;
+                const heavyCtx = heavyCanvas.getContext('2d'); heavyCtx.drawImage(canvas, 0, 0);
                 applyWatermark(ctx, w, h, LIGHT_OPACITY, LIGHT_FONT_RATIO, LIGHT_SPACING_RATIO);
                 const lightURL = canvas.toDataURL('image/jpeg', 0.85);
                 applyWatermark(heavyCtx, w, h, HEAVY_OPACITY, HEAVY_FONT_RATIO, HEAVY_SPACING_RATIO);
@@ -551,23 +281,14 @@
             async function addImageFromFile(file) {
                 if (!file.type.startsWith('image/')) return;
                 const safe = await isSafeImage(file);
-                if (!safe) {
-                    alert('⛔ Contenu inapproprié détecté. Cette image ne peut pas être ajoutée.');
-                    return;
-                }
+                if (!safe) { alert('⛔ Contenu inapproprié détecté. Image refusée.'); return; }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const tempImg = new Image();
                     tempImg.onload = function() {
                         generateWatermarkVersions(tempImg, (lightURL, heavyURL) => {
-                            galleryImages.push({
-                                id: ++imageIdCounter,
-                                lightDataURL: lightURL,
-                                heavyDataURL: heavyURL,
-                                selected: false
-                            });
-                            renderGallery();
-                            saveToStorage();
+                            galleryImages.push({ id: ++imageIdCounter, lightDataURL: lightURL, heavyDataURL: heavyURL, selected: false });
+                            renderGallery(); saveToStorage();
                         });
                     };
                     tempImg.src = e.target.result;
@@ -577,49 +298,9 @@
 
             async function handleFiles(files) {
                 if (!files || files.length === 0) return;
-                for (let f of files) {
-                    await addImageFromFile(f);
-                }
+                for (let f of files) await addImageFromFile(f);
                 fileInput.value = '';
             }
-
-            // ==================== ANTI-BOT ====================
-            function showBotChallenge(files) {
-                pendingFiles = files;
-                const n1 = Math.floor(Math.random() * 10) + 1;
-                const n2 = Math.floor(Math.random() * 10) + 1;
-                num1Span.textContent = n1;
-                num2Span.textContent = n2;
-                botAnswer.value = '';
-                botError.textContent = '';
-                botModal.classList.add('active');
-                botAnswer.focus();
-                botModal.dataset.expected = n1 + n2;
-            }
-
-            function hideBotChallenge() {
-                botModal.classList.remove('active');
-            }
-
-            btnBotVerify.addEventListener('click', () => {
-                const expected = parseInt(botModal.dataset.expected, 10);
-                const answer = parseInt(botAnswer.value.trim(), 10);
-                if (answer === expected) {
-                    antiBotPassed = true;
-                    hideBotChallenge();
-                    if (pendingFiles) {
-                        handleFiles(pendingFiles);
-                        pendingFiles = null;
-                    }
-                } else {
-                    botError.textContent = 'Réponse incorrecte. Réessayez.';
-                    botAnswer.value = '';
-                    botAnswer.focus();
-                }
-            });
-            botAnswer.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') btnBotVerify.click();
-            });
 
             // ==================== RENDU ====================
             function renderGallery() {
@@ -640,12 +321,7 @@
                         e.preventDefault();
                         activateHeavyMode(imgObj.id, img);
                         setTimeout(() => {
-                            const ev = new MouseEvent('contextmenu', {
-                                bubbles: true,
-                                cancelable: true,
-                                clientX: e.clientX,
-                                clientY: e.clientY
-                            });
+                            const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY });
                             img.dispatchEvent(ev);
                         }, 10);
                     });
@@ -653,12 +329,9 @@
                     img.addEventListener('dragend', () => restoreLightMode(imgObj.id, img));
 
                     const removeBtn = document.createElement('button');
-                    removeBtn.className = 'item-remove';
+                    removeBtn.className = 'item-remove' + (!isAdmin ? ' hidden-admin' : '');
                     removeBtn.innerHTML = '✕';
-                    removeBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        removeImage(imgObj.id);
-                    });
+                    removeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeImage(imgObj.id); });
 
                     item.appendChild(img);
                     item.appendChild(removeBtn);
@@ -666,7 +339,6 @@
                         if (e.target === removeBtn) return;
                         toggleSelection(imgObj.id);
                     });
-
                     galleryGrid.appendChild(item);
                 });
 
@@ -674,7 +346,7 @@
                 pluralEl.textContent = count === 1 ? '' : 's';
 
                 const sel = galleryImages.filter(im => im.selected).length;
-                btnDeleteSelected.classList.toggle('visible', sel > 0);
+                btnDeleteSelected.classList.toggle('visible', sel > 0 && isAdmin);
                 if (sel) btnDeleteSelected.textContent = `🗑️ Retirer (${sel})`;
             }
 
@@ -684,7 +356,6 @@
                 imgEl.src = obj.heavyDataURL;
                 heavyModeTimeouts[id] = setTimeout(() => restoreLightMode(id, imgEl), 3000);
             }
-
             function restoreLightMode(id, imgEl) {
                 const obj = galleryImages.find(im => im.id == id);
                 if (!obj) return;
@@ -695,38 +366,60 @@
 
             function toggleSelection(id) {
                 const img = galleryImages.find(im => im.id === id);
-                if (img) {
-                    img.selected = !img.selected;
+                if (img) { img.selected = !img.selected; renderGallery(); saveToStorage(); }
+            }
+            function removeImage(id) {
+                if (!isAdmin) return;
+                galleryImages = galleryImages.filter(im => im.id !== id);
+                renderGallery(); saveToStorage();
+            }
+            function removeSelectedImages() {
+                if (!isAdmin) return;
+                galleryImages = galleryImages.filter(im => !im.selected);
+                renderGallery(); saveToStorage();
+            }
+
+            // ==================== ADMIN ====================
+            function loginAdmin() {
+                if (adminPassword.value.trim() === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    adminModal.classList.remove('active');
+                    adminError.textContent = '';
+                    adminPassword.value = '';
+                    // Afficher les contrôles admin
+                    allAdminControls.forEach(el => el.classList.remove('hidden-admin'));
+                    btnOpenAdmin.textContent = '✅ Admin (connecté)';
                     renderGallery();
-                    saveToStorage();
+                } else {
+                    adminError.textContent = 'Mot de passe incorrect.';
+                    adminPassword.value = '';
+                    adminPassword.focus();
                 }
             }
 
-            function removeImage(id) {
-                galleryImages = galleryImages.filter(im => im.id !== id);
-                renderGallery();
-                saveToStorage();
-            }
+            btnOpenAdmin.addEventListener('click', () => {
+                if (isAdmin) return; // déjà connecté
+                adminModal.classList.add('active');
+                adminPassword.focus();
+            });
+            btnAdminLogin.addEventListener('click', loginAdmin);
+            adminPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); });
 
-            function removeSelectedImages() {
-                galleryImages = galleryImages.filter(im => !im.selected);
-                renderGallery();
-                saveToStorage();
-            }
+            // Fermer le modal en cliquant à l'extérieur
+            adminModal.addEventListener('click', function(e) {
+                if (e.target === adminModal) adminModal.classList.remove('active');
+            });
 
-            // ==================== UPLOAD (vérification bot) ====================
+            // ==================== UPLOAD (admin uniquement) ====================
             function attemptUpload(files) {
-                if (!antiBotPassed) {
-                    showBotChallenge(files);
+                if (!isAdmin) {
+                    alert("Seul l'administrateur peut ajouter des images.");
                     return;
                 }
                 handleFiles(files);
             }
 
-            fileInput.addEventListener('change', () => {
-                attemptUpload(fileInput.files);
-            });
-
+            fileInput.addEventListener('change', () => attemptUpload(fileInput.files));
             dropZone.addEventListener('dragover', e => {
                 e.preventDefault();
                 dropZone.classList.add('drag-over');
@@ -738,16 +431,11 @@
                 attemptUpload(e.dataTransfer.files);
             });
 
-            // Zone de drop globale
             document.addEventListener('dragover', e => {
-                if (!dropZone.contains(e.target)) {
-                    e.preventDefault();
-                    dropZone.classList.add('drag-over');
-                }
+                if (!dropZone.contains(e.target)) { e.preventDefault(); dropZone.classList.add('drag-over'); }
             });
             document.addEventListener('dragleave', e => {
-                if (!e.relatedTarget || e.relatedTarget === document.documentElement)
-                    dropZone.classList.remove('drag-over');
+                if (!e.relatedTarget || e.relatedTarget === document.documentElement) dropZone.classList.remove('drag-over');
             });
             document.addEventListener('drop', e => {
                 if (!dropZone.contains(e.target)) {
@@ -757,27 +445,23 @@
                 }
             });
 
-            // Clic sur la zone = ouvre sélecteur fichier
-            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('click', () => { if (isAdmin) fileInput.click(); });
 
-            // Bouton suppression sélection
             btnDeleteSelected.addEventListener('click', () => {
                 const sel = galleryImages.filter(im => im.selected).length;
                 if (sel && confirm(`Retirer ${sel} image(s) ?`)) removeSelectedImages();
             });
 
-            // Échap pour désélectionner
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') {
                     if (galleryImages.some(im => im.selected)) {
                         galleryImages.forEach(im => im.selected = false);
-                        renderGallery();
-                        saveToStorage();
+                        renderGallery(); saveToStorage();
                     }
                 }
             });
 
-            // ==================== INITIALISATION ====================
+            // ==================== INIT ====================
             galleryImages = loadFromStorage();
             renderGallery();
         })();
