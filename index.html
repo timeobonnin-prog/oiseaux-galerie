@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Galerie secrète d’oiseaux</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: radial-gradient(circle at top, #ffd27b, #1b1b2f);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .card {
+      background: rgba(0,0,0,0.6);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      width: 90%;
+      max-width: 900px;
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    #login, #gallery {
+      display: none;
+    }
+    #login.active, #gallery.active {
+      display: block;
+    }
+    input[type="password"], input[type="file"] {
+      width: 100%;
+      margin: 10px 0;
+    }
+    button {
+      padding: 8px 15px;
+      border-radius: 8px;
+      border: none;
+      background: #ffd27b;
+      color: #1b1b2f;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .img-card {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .img-card:hover {
+      transform: scale(1.03);
+    }
+    .best {
+      border-color: gold;
+    }
+    .badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(0,0,0,0.7);
+      padding: 3px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="login" class="active">
+      <h2>Zone secrète oiseaux 🐦</h2>
+      <p>Entre ton code :</p>
+      <input type="password" id="codeInput" placeholder="Code secret">
+      <button id="btnLogin">Entrer</button>
+      <p id="error" style="color: #ff8080; display:none;">Code incorrect.</p>
+    </div>
+
+    <div id="gallery">
+      <h2>Galerie d’oiseaux</h2>
+      <p>Ajoute tes photos (elles restent sur ton PC) :</p>
+      <input type="file" id="fileInput" accept="image/*" multiple>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const SECRET_CODE = "oiseaux123";
+
+    const loginDiv = document.getElementById("login");
+    const galleryDiv = document.getElementById("gallery");
+    const btnLogin = document.getElementById("btnLogin");
+    const codeInput = document.getElementById("codeInput");
+    const error = document.getElementById("error");
+    const fileInput = document.getElementById("fileInput");
+    const grid = document.getElementById("grid");
+
+    btnLogin.addEventListener("click", () => {
+      if (codeInput.value === SECRET_CODE) {
+        loginDiv.classList.remove("active");
+        galleryDiv.classList.add("active");
+      } else {
+        error.style.display = "block";
+      }
+    });
+
+    fileInput.addEventListener("change", (event) => {
+      const files = Array.from(event.target.files);
+
+      files.forEach(file => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          const img = new Image();
+          img.src = e.target.result;
+
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            ctx.drawImage(img, 0, 0);
+
+            ctx.font = "bold 80px Arial";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.rotate(-0.3);
+            ctx.fillText("TIMÉO ©", canvas.width / 2, canvas.height / 2);
+
+            const watermarked = canvas.toDataURL("image/jpeg");
+
+            const div = document.createElement("div");
+            div.className = "img-card";
+            div.innerHTML = `
+              <img src="${watermarked}">
+              <div class="badge">Cliquer = meilleur</div>
+            `;
+            div.addEventListener("click", () => {
+              div.classList.toggle("best");
+            });
+
+            grid.appendChild(div);
+          };
+        };
+
+        reader.readAsDataURL(file);
+      });
+    });
+  </script>
+</body>
+</html>
