@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galerie Protégée – Public + Admin</title>
+    <title>Galerie Protégée – Tri par date</title>
     <style>
         :root {
             --bg: #0d0d0d;
@@ -42,19 +42,19 @@
         .header-info { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
         .counter { background:var(--bg); padding:10px 18px; border-radius:50px; font-size:0.9rem; color:var(--text-muted); border:1px solid var(--border); }
         .counter strong { color:var(--gold-light); }
-        .btn-upload, .btn-delete-selected, .admin-btn {
+        .btn-upload, .btn-delete-selected, .admin-btn, .sort-btn {
             display:flex; align-items:center; gap:8px; padding:12px 24px; border-radius:50px;
             background:linear-gradient(135deg, var(--gold-dark), var(--gold)); color:#1a1a1a;
             font-weight:700; border:none; cursor:pointer; position:relative; overflow:hidden;
             box-shadow:0 4px 18px rgba(201,160,80,0.3); transition:var(--transition);
         }
         .btn-upload input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-        .btn-upload:hover, .btn-delete-selected:hover, .admin-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(224,200,120,0.5); }
+        .btn-upload:hover, .btn-delete-selected:hover, .admin-btn:hover, .sort-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(224,200,120,0.5); }
         .btn-delete-selected { background:transparent; color:#c77; border:1.5px solid #5a2a2a; display:none; }
         .btn-delete-selected.visible { display:inline-flex; }
         .btn-delete-selected:hover { background:#2a1010; border-color:#a33; color:#f88; }
-        .admin-btn { background:transparent; border:1.5px solid var(--gold); color:var(--gold-light); font-weight:600; padding:10px 18px; }
-        .admin-controls { display:flex; gap:10px; align-items:center; }
+        .admin-btn, .sort-btn { background:transparent; border:1.5px solid var(--gold); color:var(--gold-light); font-weight:600; padding:10px 18px; }
+        .sort-btn.active { background:var(--gold); color:#1a1a1a; border-color:var(--gold); }
         .hidden-admin { display:none!important; }
         .drop-zone {
             max-width:1200px; margin:0 auto 30px; padding:50px 30px; text-align:center;
@@ -67,36 +67,103 @@
         .gallery-empty { text-align:center; padding:80px 20px; color:#444; }
         .gallery-empty .empty-icon { font-size:5rem; display:block; margin-bottom:16px; opacity:0.4; }
         .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:20px; padding:0; }
-        .gallery-item { position:relative; border-radius:var(--radius); overflow:hidden; background:var(--surface2); border:2px solid transparent; aspect-ratio:4/3; box-shadow:0 4px 16px rgba(0,0,0,0.4); cursor:pointer; transition:var(--transition); }
+        .gallery-item {
+            position:relative; border-radius:var(--radius); overflow:hidden;
+            background:var(--surface2); border:2px solid transparent;
+            aspect-ratio:4/3; box-shadow:0 4px 16px rgba(0,0,0,0.4);
+            cursor:pointer; transition:var(--transition);
+        }
         .gallery-item:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,0.6),0 0 0 1px var(--gold-dark); border-color:#555; }
-        .gallery-item.selected { border-color:var(--gold)!important; box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25); animation:selectedGlow 2s infinite; }
-        @keyframes selectedGlow { 0%,100%{box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);} 50%{box-shadow:0 0 40px rgba(224,200,120,0.9),0 0 70px rgba(224,200,120,0.7),0 0 100px rgba(224,200,120,0.4);} }
-        .gallery-item.selected::after { content:'★'; position:absolute; top:12px; right:14px; font-size:1.4rem; color:var(--gold-light); z-index:5; }
+        .gallery-item.selected {
+            border-color:var(--gold)!important;
+            box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);
+            animation:selectedGlow 2s infinite;
+        }
+        @keyframes selectedGlow {
+            0%,100%{box-shadow:0 0 25px var(--gold-glow),0 0 50px var(--gold-glow),0 0 80px rgba(201,160,80,0.25);}
+            50%{box-shadow:0 0 40px rgba(224,200,120,0.9),0 0 70px rgba(224,200,120,0.7),0 0 100px rgba(224,200,120,0.4);}
+        }
+        .gallery-item.selected::after {
+            content:'★'; position:absolute; top:12px; right:14px; font-size:1.4rem;
+            color:var(--gold-light); z-index:5;
+            filter:drop-shadow(0 0 8px rgba(201,160,80,0.9));
+        }
         .gallery-item img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
-        .item-remove { position:absolute; top:10px; left:12px; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.7); border:1px solid #555; color:#ccc; display:flex; align-items:center; justify-content:center; opacity:0; cursor:pointer; transition:var(--transition); }
-        .gallery-item:hover .item-remove { opacity:1; }
+        .item-remove, .item-zoom {
+            position:absolute; z-index:5; width:32px; height:32px; border-radius:50%;
+            background:rgba(0,0,0,0.7); border:1px solid #555; color:#ccc;
+            display:flex; align-items:center; justify-content:center;
+            opacity:0; cursor:pointer; transition:var(--transition);
+            pointer-events:auto;
+        }
+        .item-remove { top:10px; left:12px; }
+        .item-zoom { top:10px; right:50px; }
+        .gallery-item:hover .item-remove, .gallery-item:hover .item-zoom { opacity:1; }
         .item-remove:hover { background:rgba(180,30,30,0.8); border-color:#b33; color:#fff; }
-        .watermark-badge { display:inline-flex; align-items:center; gap:6px; background:var(--bg); padding:8px 14px; border-radius:50px; font-size:0.8rem; color:var(--gold-light); border:1px solid #3a3020; }
-        .watermark-badge .dot { width:8px; height:8px; border-radius:50%; background:var(--gold); animation:pulseDot 1.5s infinite; }
-        @keyframes pulseDot { 0%,100%{box-shadow:0 0 6px var(--gold-glow);} 50%{box-shadow:0 0 16px rgba(224,200,120,0.9);} }
+        .item-zoom:hover { background:rgba(201,160,80,0.3); border-color:var(--gold); color:var(--gold-light); }
 
-        /* Pop‑up admin */
+        .watermark-badge {
+            display:inline-flex; align-items:center; gap:6px;
+            background:var(--bg); padding:8px 14px; border-radius:50px;
+            font-size:0.8rem; color:var(--gold-light); border:1px solid #3a3020;
+        }
+        .watermark-badge .dot {
+            width:8px; height:8px; border-radius:50%; background:var(--gold);
+            animation:pulseDot 1.5s infinite;
+        }
+        @keyframes pulseDot {
+            0%,100%{box-shadow:0 0 6px var(--gold-glow);}
+            50%{box-shadow:0 0 16px rgba(224,200,120,0.9);}
+        }
+
+        /* Lightbox */
+        .lightbox {
+            position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,0.9);
+            display:flex; align-items:center; justify-content:center;
+            opacity:0; visibility:hidden; transition:0.3s;
+        }
+        .lightbox.active { opacity:1; visibility:visible; }
+        .lightbox-content {
+            position:relative; max-width:90vw; max-height:90vh;
+            display:flex; flex-direction:column; align-items:center;
+        }
+        .lightbox-content img {
+            max-width:100%; max-height:80vh; object-fit:contain;
+            border:2px solid var(--border); border-radius:8px;
+            box-shadow:0 0 40px rgba(201,160,80,0.3);
+            user-select: none; -webkit-user-drag: none;
+        }
+        .lightbox-copyright {
+            margin-top:12px; color:var(--text-muted); font-size:0.85rem;
+            letter-spacing:0.03em;
+        }
+        .lightbox-close {
+            position:absolute; top:-15px; right:-15px; width:40px; height:40px;
+            border-radius:50%; background:var(--surface); border:1px solid var(--border);
+            color:var(--text); font-size:1.4rem; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            transition:var(--transition);
+        }
+        .lightbox-close:hover { background:#a33; color:#fff; }
+
         .modal-overlay {
-            position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center;
-            justify-content:center; z-index:2000; opacity:0; visibility:hidden; transition:0.3s;
+            position:fixed; inset:0; background:rgba(0,0,0,0.85);
+            display:flex; align-items:center; justify-content:center;
+            z-index:2000; opacity:0; visibility:hidden; transition:0.3s;
         }
         .modal-overlay.active { opacity:1; visibility:visible; }
         .modal-box {
-            background:var(--surface); border:1px solid var(--border); border-radius:16px;
-            padding:30px; text-align:center; max-width:400px; width:90%;
-            box-shadow:0 0 40px rgba(201,160,80,0.2);
+            background:var(--surface); border:1px solid var(--border);
+            border-radius:16px; padding:30px; text-align:center;
+            max-width:400px; width:90%; box-shadow:0 0 40px rgba(201,160,80,0.2);
         }
         .modal-box h3 { color:var(--gold-light); margin-bottom:12px; }
         .modal-box input { padding:10px; border-radius:20px; border:1px solid var(--border); background:var(--bg); color:var(--text); width:80%; text-align:center; margin-bottom:12px; }
         .error { color:#e88; font-size:0.85rem; min-height:20px; margin-top:8px; }
         .btn { padding:14px 28px; border-radius:50px; border:none; cursor:pointer; font-weight:600; font-size:0.95rem; width:100%; }
-        .btn-gold { background:linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light)); color:#1a1a1a; box-shadow:0 4px 20px rgba(201,160,80,0.35); }
+        .btn-gold { background:linear-gradient(135deg, var(--gold-dark),var(--gold),var(--gold-light)); color:#1a1a1a; box-shadow:0 4px 20px rgba(201,160,80,0.35); }
         .btn-gold:hover { transform:translateY(-2px); box-shadow:0 6px 30px rgba(224,200,120,0.55); }
+
         @media (max-width:768px) {
             .header { flex-direction:column; text-align:center; padding:16px 20px; }
             .gallery-grid { grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
@@ -105,7 +172,17 @@
     </style>
 </head>
 <body>
-    <!-- Pop‑up admin (connexion) -->
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="Image agrandie">
+            <div class="lightbox-copyright" id="lightbox-copyright"></div>
+            <button class="lightbox-close" id="lightbox-close">✕</button>
+        </div>
+    </div>
+
+    <!-- Pop‑up admin -->
     <div class="modal-overlay" id="admin-modal">
         <div class="modal-box">
             <h3>🔐 Administration</h3>
@@ -126,6 +203,9 @@
             <div class="header-info">
                 <span class="watermark-badge"><span class="dot"></span> Protection active</span>
                 <span class="counter"><strong id="image-count">0</strong> image<span id="plural">s</span></span>
+                <!-- Tri -->
+                <button class="sort-btn active" id="sort-newest">🕒 Plus récent</button>
+                <button class="sort-btn" id="sort-oldest">📅 Plus ancien</button>
                 <button class="admin-btn" id="btn-open-admin">🔒 Admin</button>
                 <button class="btn-upload hidden-admin" id="btn-upload-area">
                     📁 Ajouter
@@ -150,17 +230,14 @@
         </div>
     </div>
 
-    <!-- Librairies -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js">
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.0/dist/nsfwjs.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nsfwjs@2.4.0/dist/nsfwjs.min.js"></script>
 
     <script>
         (function() {
-            // ==================== CONFIG ====================
-            const ADMIN_PASSWORD = 'admin123';          // mot de passe admin
-            const WATERMARK_TEXT = '© PROTÉGÉ';
+            // ==================== CONFIGURATION ====================
+            const ADMIN_PASSWORD_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"; // hash de "password"
+            const WATERMARK_TEXT = "© Tous droits réservés 2024 - Votre Nom";
             const LIGHT_OPACITY = 0.12;
             const LIGHT_FONT_RATIO = 0.06;
             const LIGHT_SPACING_RATIO = 0.25;
@@ -168,14 +245,16 @@
             const HEAVY_FONT_RATIO = 0.13;
             const HEAVY_SPACING_RATIO = 0.16;
             const MAX_DIM = 1400;
-            const STORAGE_KEY = 'protected_gallery_images';
+            const STORAGE_KEY = 'protected_gallery_data'; // changement de clé car on stocke un objet {images, sortOrder}
             const NSFW_THRESHOLD = 0.5;
 
+            // ==================== ÉTAT ====================
             let galleryImages = [];
             let imageIdCounter = Date.now();
             let heavyModeTimeouts = {};
             let nsfwModel = null;
             let isAdmin = false;
+            let currentSort = 'newest'; // 'newest' ou 'oldest'
 
             // DOM
             const mainContainer = document.getElementById('main-container');
@@ -193,22 +272,56 @@
             const btnAdminLogin = document.getElementById('btn-admin-login');
             const adminError = document.getElementById('admin-error');
             const allAdminControls = document.querySelectorAll('.hidden-admin');
+            const sortNewestBtn = document.getElementById('sort-newest');
+            const sortOldestBtn = document.getElementById('sort-oldest');
+
+            // Lightbox
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            const lightboxCopyright = document.getElementById('lightbox-copyright');
+            const lightboxClose = document.getElementById('lightbox-close');
 
             // ==================== PERSISTANCE ====================
             function saveToStorage() {
-                const data = galleryImages.map(img => ({
-                    id: img.id,
-                    lightDataURL: img.lightDataURL,
-                    heavyDataURL: img.heavyDataURL,
-                    selected: img.selected
-                }));
+                const data = {
+                    images: galleryImages.map(img => ({
+                        id: img.id,
+                        lightDataURL: img.lightDataURL,
+                        heavyDataURL: img.heavyDataURL,
+                        selected: img.selected,
+                        timestamp: img.timestamp
+                    })),
+                    sortOrder: currentSort
+                };
                 try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
             }
 
             function loadFromStorage() {
                 const raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) return [];
-                try { return JSON.parse(raw); } catch(e) { return []; }
+                if (!raw) return { images: [], sortOrder: 'newest' };
+                try {
+                    const parsed = JSON.parse(raw);
+                    return {
+                        images: (parsed.images || []).map(item => ({
+                            id: item.id,
+                            lightDataURL: item.lightDataURL,
+                            heavyDataURL: item.heavyDataURL,
+                            selected: item.selected || false,
+                            timestamp: item.timestamp || Date.now() // fallback
+                        })),
+                        sortOrder: parsed.sortOrder || 'newest'
+                    };
+                } catch(e) {
+                    return { images: [], sortOrder: 'newest' };
+                }
+            }
+
+            // ==================== HASH ====================
+            async function sha256(message) {
+                const msgBuffer = new TextEncoder().encode(message);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             }
 
             // ==================== NSFW ====================
@@ -287,8 +400,16 @@
                     const tempImg = new Image();
                     tempImg.onload = function() {
                         generateWatermarkVersions(tempImg, (lightURL, heavyURL) => {
-                            galleryImages.push({ id: ++imageIdCounter, lightDataURL: lightURL, heavyDataURL: heavyURL, selected: false });
-                            renderGallery(); saveToStorage();
+                            const newImage = {
+                                id: ++imageIdCounter,
+                                lightDataURL: lightURL,
+                                heavyDataURL: heavyURL,
+                                selected: false,
+                                timestamp: Date.now() // horodatage
+                            };
+                            galleryImages.push(newImage);
+                            renderGallery();
+                            saveToStorage();
                         });
                     };
                     tempImg.src = e.target.result;
@@ -302,8 +423,33 @@
                 fileInput.value = '';
             }
 
+            // ==================== TRI ====================
+            function sortImages() {
+                if (currentSort === 'newest') {
+                    galleryImages.sort((a, b) => b.timestamp - a.timestamp);
+                } else {
+                    galleryImages.sort((a, b) => a.timestamp - b.timestamp);
+                }
+            }
+
+            function setSortOrder(order) {
+                if (currentSort === order) return;
+                currentSort = order;
+                sortNewestBtn.classList.toggle('active', order === 'newest');
+                sortOldestBtn.classList.toggle('active', order === 'oldest');
+                sortImages();
+                renderGallery();
+                saveToStorage();
+            }
+
+            sortNewestBtn.addEventListener('click', () => setSortOrder('newest'));
+            sortOldestBtn.addEventListener('click', () => setSortOrder('oldest'));
+
             // ==================== RENDU ====================
             function renderGallery() {
+                // Appliquer le tri avant d'afficher
+                sortImages();
+
                 galleryGrid.innerHTML = '';
                 const count = galleryImages.length;
                 galleryEmpty.style.display = count ? 'none' : 'block';
@@ -328,15 +474,26 @@
                     img.addEventListener('dragstart', () => activateHeavyMode(imgObj.id, img));
                     img.addEventListener('dragend', () => restoreLightMode(imgObj.id, img));
 
+                    // Bouton zoom (loupe)
+                    const zoomBtn = document.createElement('button');
+                    zoomBtn.className = 'item-zoom';
+                    zoomBtn.innerHTML = '🔍';
+                    zoomBtn.title = 'Agrandir';
+                    zoomBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openLightbox(imgObj);
+                    });
+
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'item-remove' + (!isAdmin ? ' hidden-admin' : '');
                     removeBtn.innerHTML = '✕';
                     removeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeImage(imgObj.id); });
 
                     item.appendChild(img);
+                    item.appendChild(zoomBtn);
                     item.appendChild(removeBtn);
                     item.addEventListener('click', (e) => {
-                        if (e.target === removeBtn) return;
+                        if (e.target === removeBtn || e.target === zoomBtn) return;
                         toggleSelection(imgObj.id);
                     });
                     galleryGrid.appendChild(item);
@@ -379,17 +536,60 @@
                 renderGallery(); saveToStorage();
             }
 
+            // ==================== LIGHTBOX ====================
+            function openLightbox(imgObj) {
+                lightboxImg.src = imgObj.lightDataURL;
+                lightboxCopyright.textContent = WATERMARK_TEXT;
+                currentLightboxImageId = imgObj.id;
+                lightbox.classList.add('active');
+
+                // Protection de la lightbox : clic droit = version lourde
+                lightboxImg.oncontextmenu = function(e) {
+                    e.preventDefault();
+                    const heavyImg = new Image();
+                    heavyImg.src = imgObj.heavyDataURL;
+                    // Pour vraiment forcer la copie lourde, on remplace temporairement
+                    lightboxImg.src = heavyImg.src;
+                    setTimeout(() => {
+                        if (lightbox.classList.contains('active')) lightboxImg.src = imgObj.lightDataURL;
+                    }, 3000);
+                    return false;
+                };
+                lightboxImg.ondragstart = function(e) {
+                    e.preventDefault();
+                    lightboxImg.src = imgObj.heavyDataURL;
+                    setTimeout(() => {
+                        if (lightbox.classList.contains('active')) lightboxImg.src = imgObj.lightDataURL;
+                    }, 3000);
+                };
+            }
+
+            lightboxClose.addEventListener('click', () => {
+                lightbox.classList.remove('active');
+                lightboxImg.src = '';
+                currentLightboxImageId = null;
+            });
+            lightbox.addEventListener('click', function(e) {
+                if (e.target === lightbox) {
+                    lightbox.classList.remove('active');
+                    lightboxImg.src = '';
+                    currentLightboxImageId = null;
+                }
+            });
+
             // ==================== ADMIN ====================
-            function loginAdmin() {
-                if (adminPassword.value.trim() === ADMIN_PASSWORD) {
+            async function loginAdmin() {
+                const enteredPassword = adminPassword.value.trim();
+                if (!enteredPassword) return;
+                const enteredHash = await sha256(enteredPassword);
+                if (enteredHash === ADMIN_PASSWORD_HASH) {
                     isAdmin = true;
                     adminModal.classList.remove('active');
                     adminError.textContent = '';
                     adminPassword.value = '';
-                    // Afficher les contrôles admin
                     allAdminControls.forEach(el => el.classList.remove('hidden-admin'));
                     btnOpenAdmin.textContent = '✅ Admin (connecté)';
-                    renderGallery();
+                    renderGallery(); // réaffiche les boutons de suppression
                 } else {
                     adminError.textContent = 'Mot de passe incorrect.';
                     adminPassword.value = '';
@@ -398,19 +598,17 @@
             }
 
             btnOpenAdmin.addEventListener('click', () => {
-                if (isAdmin) return; // déjà connecté
+                if (isAdmin) return;
                 adminModal.classList.add('active');
                 adminPassword.focus();
             });
             btnAdminLogin.addEventListener('click', loginAdmin);
             adminPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginAdmin(); });
-
-            // Fermer le modal en cliquant à l'extérieur
             adminModal.addEventListener('click', function(e) {
                 if (e.target === adminModal) adminModal.classList.remove('active');
             });
 
-            // ==================== UPLOAD (admin uniquement) ====================
+            // ==================== UPLOAD ====================
             function attemptUpload(files) {
                 if (!isAdmin) {
                     alert("Seul l'administrateur peut ajouter des images.");
@@ -420,10 +618,7 @@
             }
 
             fileInput.addEventListener('change', () => attemptUpload(fileInput.files));
-            dropZone.addEventListener('dragover', e => {
-                e.preventDefault();
-                dropZone.classList.add('drag-over');
-            });
+            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
             dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
             dropZone.addEventListener('drop', e => {
                 e.preventDefault();
@@ -461,8 +656,12 @@
                 }
             });
 
-            // ==================== INIT ====================
-            galleryImages = loadFromStorage();
+            // ==================== INITIALISATION ====================
+            const storedData = loadFromStorage();
+            galleryImages = storedData.images;
+            currentSort = storedData.sortOrder || 'newest';
+            sortNewestBtn.classList.toggle('active', currentSort === 'newest');
+            sortOldestBtn.classList.toggle('active', currentSort === 'oldest');
             renderGallery();
         })();
     </script>
